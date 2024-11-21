@@ -17,7 +17,7 @@ void initialize_fat() {
 }
 
 
-void save_to_disk() {
+void save_fat_to_disk() {
     FILE *fs = fopen("filesystem.dat", "wb");
     if (fs == NULL) {
         printf("Erro ao criar o arquivo filesystem.dat\n");
