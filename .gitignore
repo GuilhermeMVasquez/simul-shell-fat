@@ -150,4 +150,8 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+*build
+*settings.json
+*launch.json
+*main.out
 # End of https://www.toptal.com/developers/gitignore/api/c,visualstudiocode,macos,windows,linux
