@@ -120,21 +120,21 @@ struct dir_entry_s find_directory( const char *path[], int path_length ) {
     for ( int i = 0; i < path_length; i++ ) {
         int found = 0;
 
-        // Percorre as entradas do diretório atual
-        for (int j = 0; j < DIR_ENTRIES; j++) {
-            read_dir_entry(parent_block, j, &entry);
+        // loop through entries in the current directory
+        for ( int j = 0; j < DIR_ENTRIES; j++ ) {
+            read_dir_entry( parent_block, j, &entry );
 
-            if (entry.attributes == 0x02 && strncmp((char *)entry.filename, path[i], 25) == 0) {
+            if ( entry.attributes == 0x02 && strncmp(( char * )entry.filename, path[ i ], 25 ) == 0 ) {
                 // directory found
-                parent_block = entry.first_block;  // Avança para o próximo bloco
+                parent_block = entry.first_block; 
                 found = 1;
                 break;
             }
         }
 
-        if (!found) {
-            printf("Error: directory '%s' not found.\n", path[i]);
-            memset(&entry, 0, sizeof(entry));  // return a clean directory
+        if ( !found ) {
+            printf( "Error: directory '%s' not found.\n", path[ i ] );
+            memset( &entry, 0, sizeof( entry ) );  // return a clean directory
             return entry;
         }
     }
@@ -142,13 +142,14 @@ struct dir_entry_s find_directory( const char *path[], int path_length ) {
     return entry;
 }
 
-int create_file(const char *path[], int path_length, const char *name, const uint8_t *data, uint32_t size) {
-    // Encontra o diretório de destino usando a função auxiliar find_directory
-    struct dir_entry_s parent_dir = find_directory(path, path_length);
+ /* Create regular file */
+int create_file( const char *path[], int path_length, const char *name, const uint8_t *data, uint32_t size ) {
+    // Find the destination directory using the find_directory helper function
+    struct dir_entry_s parent_dir = find_directory( path, path_length );
 
     // look if directory is found
-    if (parent_dir.attributes == 0x00) {
-        printf("Error: directory not found.\n");
+    if ( parent_dir.attributes == 0x00 ) {
+        printf( "Error: directory not found.\n" );
         return -1;
     }
 
@@ -157,7 +158,7 @@ int create_file(const char *path[], int path_length, const char *name, const uin
     //allocating the first block 
     int first_block = allocate_block();
     if (first_block == -1) {
-        printf("Erro: Não há blocos livres para o arquivo.\n");
+        printf( "Error: There are no free blocks for the file.\n" );
         return -1;
     }
 
@@ -166,61 +167,61 @@ int create_file(const char *path[], int path_length, const char *name, const uin
     uint32_t data_offset = 0;
 
     //writing 
-    FILE *fs = fopen("filesystem.dat", "r+b");
+    FILE *fs = fopen( "filesystem.dat", "r+b" );
     if (fs == NULL) {
-        printf("Error opening file system file.\n");
-        free_blocks(first_block);  // Libera os blocos alocados
+        printf( "Error opening file system file.\n" );
+        free_blocks( first_block );  // Release allocated blocks
         return -1;
     }
 
     // write the archive in the blocks
-    while (remaining_bytes > 0) {
-        fseek(fs, current_block * BLOCK_SIZE, SEEK_SET);
-        uint32_t bytes_to_write = (remaining_bytes > BLOCK_SIZE) ? BLOCK_SIZE : remaining_bytes;
-        fwrite(&data[data_offset], 1, bytes_to_write, fs);
+    while ( remaining_bytes > 0 ) {
+        fseek( fs, current_block * BLOCK_SIZE, SEEK_SET );
+        uint32_t bytes_to_write = ( remaining_bytes > BLOCK_SIZE ) ? BLOCK_SIZE : remaining_bytes;
+        fwrite( &data[ data_offset ], 1, bytes_to_write, fs);
 
         remaining_bytes -= bytes_to_write;
         data_offset += bytes_to_write;
 
-        if (remaining_bytes > 0) {
+        if ( remaining_bytes > 0 ) {
             int next_block = allocate_block();
-            if (next_block == -1) {
-                printf("Erro: Não há espaço para continuar a escrita do arquivo.\n");
+            if ( next_block == -1 ) {
+                printf( "Error: There is no space to continue writing the file.\n" );
                 free_blocks(first_block);
                 fclose(fs);
                 return -1;
             }
-            fat[current_block] = next_block;
+            fat[ current_block ] = next_block;
             current_block = next_block;
         }
     }
 
     // Mark the last block as the end
-    fat[current_block] = 0x7FFF;
+    fat[ current_block ] = 0x7FFF;
 
     // create archive entry in directory
     struct dir_entry_s new_entry;
-    memset(&new_entry, 0, sizeof(struct dir_entry_s));
-    strncpy((char *)new_entry.filename, name, 25);
+    memset( &new_entry, 0, sizeof( struct dir_entry_s ) );
+    strncpy( ( char * )new_entry.filename, name, 25 );
     new_entry.attributes = 0x01;  // regular archive
     new_entry.first_block = first_block;
     new_entry.size = size;
 
     //Add the entry to the destination directory
-    for (int i = 0; i < DIR_ENTRIES; i++) {
+    for ( int i = 0; i < DIR_ENTRIES; i++ ) {
         struct dir_entry_s temp_entry;
-        read_dir_entry(parent_block, i, &temp_entry);
+        read_dir_entry( parent_block, i, &temp_entry );
 
-        if (temp_entry.attributes == 0x00) {  // Entrada vazia
-            write_dir_entry(parent_block, i, &new_entry);
-            printf("File '%s' created in directory with starting block %d.\n", name, first_block);
+        if ( temp_entry.attributes == 0x00 ) {  // Entrada vazia
+            write_dir_entry( parent_block, i, &new_entry );
+            printf( "File '%s' created in directory with starting block %d.\n", name, first_block );
             fclose(fs);
             return first_block;
         }
     }
 
-    printf("Erro: Diretório de destino está cheio.\n");
-    fclose(fs);
+    printf( "Error: Destination directory is full.\n" );
+    fclose( fs );
     return -1;
 }
 
@@ -247,19 +248,19 @@ void write_block(char *file, uint32_t block, uint8_t *record)
 }
 
 
-int create_directory(const char *path[], int path_length, const char *dirname) {
+int create_directory( const char *path[], int path_length, const char *dirname ) {
     uint32_t parent_block = ROOT_BLOCK;  // Starts in the root directory
     struct dir_entry_s entry;
 
     //Traverse the directories in the path
-    for (int i = 0; i < path_length; i++) {
+    for ( int i = 0; i < path_length; i++ ) {
         int found = 0;
 
     // Cycle through the current directory entries to find the next level of the path
-        for (int j = 0; j < DIR_ENTRIES; j++) {
-            read_dir_entry(parent_block, j, &entry);
+        for ( int j = 0; j < DIR_ENTRIES; j++ ) {
+            read_dir_entry( parent_block, j, &entry );
 
-            if (entry.attributes == 0x02 && strncmp((char *)entry.filename, path[i], 25) == 0) {
+            if ( entry.attributes == 0x02 && strncmp(( char * )entry.filename, path[ i ], 25) == 0 ) {
                 // Diretório encontrado
                 parent_block = entry.first_block;  // Avança para o próximo bloco
                 found = 1;
@@ -267,42 +268,42 @@ int create_directory(const char *path[], int path_length, const char *dirname) {
             }
         }
 
-        if (!found) {
+        if ( !found ) {
             return -1;
         }
     }
 
     //Create the final directory in the parent directory
     int new_dir_block = allocate_block();
-    if (new_dir_block == -1) {
+    if ( new_dir_block == -1 ) {
         printf("Error: There are no free blocks for the final directory.\n");
         return -1;
     }
 
     // Initialize the final directory block with 32 empty entries
-    uint8_t data_block[BLOCK_SIZE] = {0};
-    write_block("filesystem.dat", new_dir_block, data_block);
+    uint8_t data_block[ BLOCK_SIZE ] = {0};
+    write_block( "filesystem.dat", new_dir_block, data_block );
 
     // Create the final directory entry
-    memset(&entry, 0, sizeof(struct dir_entry_s));
-    strncpy((char *)entry.filename, dirname, 25);
+    memset( &entry, 0, sizeof( struct dir_entry_s ) );
+    strncpy( ( char * )entry.filename, dirname, 25 );
     entry.attributes = 0x02;  // directory
     entry.first_block = new_dir_block;
     entry.size = 0;
 
     // Add entry to parent directory    
-    for (int j = 0; j < DIR_ENTRIES; j++) {
+    for ( int j = 0; j < DIR_ENTRIES; j++ ) {
         struct dir_entry_s temp_entry;
-        read_dir_entry(parent_block, j, &temp_entry);
+        read_dir_entry( parent_block, j, &temp_entry );
 
-        if (temp_entry.attributes == 0x00) {  // Entrada vazia
+        if ( temp_entry.attributes == 0x00 ) {  // Entrada vazia
             write_dir_entry(parent_block, j, &entry);
             printf("Directory '%s' created in block %d.\n", dirname, new_dir_block);
             return new_dir_block;  // Retorna o bloco onde o diretório foi criado
         }
     }
 
-    printf("Error: Parent directory is full.\n");
+    printf( "Error: Parent directory is full.\n" );
     return -1;  // Parent directory is full
 }
 
@@ -311,20 +312,20 @@ int list_directory( const char *path[], int path_length ) {
 // Find the desired directory using find_directory
     struct dir_entry_s target_dir = find_directory( path, path_length );
 
-    if (target_dir.attributes == 0x00 || target_dir.attributes != 0x02) {
-        printf("Erro: Diretório não encontrado ou inválido.\n");
+    if ( target_dir.attributes == 0x00 || target_dir.attributes != 0x02 ) {
+        printf( "Error: Directory not found or invalid.\n" );
         return -1;
     }
 
     // Read the block from the found directory
     uint32_t dir_block = target_dir.first_block;
 
-    for (int i = 0; i < DIR_ENTRIES; i++) {
+    for ( int i = 0; i < DIR_ENTRIES; i++ ) {
         struct dir_entry_s entry;
         read_dir_entry(dir_block, i, &entry);
 
         // Checks if the input is not empty
-        if (entry.attributes != 0x00) {
+        if ( entry.attributes != 0x00 ) {
             printf("  - %s type %s, first block: %d, size: %d bytes\n",
                    entry.filename,
                    (entry.attributes == 0x02) ? "Diretório" : "Arquivo",
