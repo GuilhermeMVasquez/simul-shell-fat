@@ -14,6 +14,7 @@
 #define APPEND "append"
 #define READ "read"
 #define CD "cd"
+#define EXIT "exit"
 
 typedef struct Command {
     char *commandString;

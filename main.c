@@ -133,6 +133,12 @@ void executeCommand(Command *command, SystemState *sysState)
         if (tokens.length > 1)
             free(mkdirPath);
     }
+    else if (strcmp(tokens.tokens[0], "exit") == 0)
+    {
+        sysState->hasEnded = 1;
+        printf("Exiting!\n");
+        return;
+    }
     else /* default: */
     {
         printf("Command not recognized: '%s'\n", tokens.tokens[0]);
@@ -164,11 +170,11 @@ int main() {
     SystemState *state = malloc(sizeof(SystemState));
     FilePath *startingPath = initFilePath("");
     state->currentPath = startingPath;
+    state->hasEnded = 0;
 
-    char hasEnded = 0;
-    while (!hasEnded)
+    while ( !(state->hasEnded) )
     {
-        Command *command = shellCycle(state, &hasEnded);
+        Command *command = shellCycle(state);
         executeCommand(command, state);
     }
 }

@@ -34,7 +34,7 @@ void saveCursorPosition()
     printf("\033[s");
 }
 
-Command* shellCycle(SystemState* systemState, char *hasEnded)
+Command* shellCycle(SystemState* systemState)
 {
     char ch = 'a';
     char *str = malloc(1);
