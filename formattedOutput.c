@@ -55,6 +55,9 @@ void printMan()
     colorWhite();
     printf("\nExtra Commands:\n");
     printManLine("cd", "[/path/directory]", NULL, "Enters the directory in the given path. When inside directories, all paths will be \n   built on top of the path of the directory you are inside. For creating a path from the root,\n   start it with \"/\". If no path is specified to cd, it goes back to the root directory.", "cd Desktop/PUCRS/5SEM");
+    printManLine("clear", NULL, NULL, "Clears the screen.", "clear");
+    printManLine("exit", NULL, NULL, "Exits the program", "exit");
+    printManLine("man", NULL, NULL, "Prints this manual!", "man");
 }
 
 void printUserAndMachine()
