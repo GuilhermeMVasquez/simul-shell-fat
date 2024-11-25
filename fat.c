@@ -398,12 +398,15 @@ int find_file_in_directory(uint32_t parent_block, const char *filename, struct d
     return -1;
 }
 
-int append_file( FilePath *filepath, const char *filename, const uint8_t *data ) {
+int append_file( FilePath *filepath, const char *filename, const uint8_t *data, int repetitions ) {
 
     if (data == NULL) {
         printf("Error: Trying to append nothing\n");
         return -1;
     }
+
+    if (repetitions > 1)
+        append_file(filepath, filename, data, repetitions-1);
 
     // Calculating the data entry size 
     uint32_t data_size = strlen( ( char * ) data );  
