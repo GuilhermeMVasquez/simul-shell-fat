@@ -107,7 +107,16 @@ void executeCommand(Command *command, SystemState *sysState)
     // Check for exact matches
     if (strcmp(tokens.tokens[0], "ls") == 0)
     {
-        list_directory(sysState->currentPath);
+        FilePath *lsPath;
+        if (tokens.length > 1)
+            lsPath = initFilePath(tokens.tokens[1]);
+        else
+            lsPath = sysState->currentPath;
+
+        list_directory(lsPath);
+
+        if (tokens.length > 1)
+            free(lsPath);
     }
     else /* default: */
     {
