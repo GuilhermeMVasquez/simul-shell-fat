@@ -345,20 +345,42 @@ int list_directory( FilePath *filepath ) {
         dir_block = target_dir.first_block;
     }
 
-
+    int amountOfFiles = 0;
     for ( int i = 0; i < DIR_ENTRIES; i++ ) {
         Dir_Entry entry;
         read_dir_entry(dir_block, i, &entry);
+        if ( entry.attributes != 0x00 )
+            amountOfFiles++;
+    }
 
-        // Checks if the input is not empty
-        if ( entry.attributes != 0x00 ) {
-            printf("  - %s type %s, first block: %d, size: %d bytes\n",
-                   entry.filename,
-                   (entry.attributes == 0x02) ? "directory" : "archive",
-                   entry.first_block,
-                   entry.size);
+    if (amountOfFiles == 0) {
+        const char *fileName = filepath->pathSize == 0 ? "root" : filepath->pathTokens[filepath->pathSize-1];
+        printf("%s is empty.\n", fileName);
+        return 0;
+    }
+
+    printf("\033[36m%-25s %-10s %-15s %-10s\033[0m\n", "Name", "Type", "First Block", "Size (bytes)");
+    printf("\033[36m-----------------------------------------------------------------\033[0m\n");
+
+    for (int i = 0; i < DIR_ENTRIES; i++) {
+        Dir_Entry entry;
+        read_dir_entry(dir_block, i, &entry);
+
+        // Check if the entry is not empty
+        if (entry.attributes != 0x00) {
+            // Use green for directories and yellow for archives
+            const char *type_color = (entry.attributes == 0x02) ? "\033[32m" : "\033[33m";
+            
+            printf("%-25s %s%-10s\033[0m %-15d %-10d\n",
+                entry.filename,
+                type_color,
+                (entry.attributes == 0x02) ? "Directory" : "Archive",
+                entry.first_block,
+                entry.size);
         }
     }
+
+    printf("\033[36m-----------------------------------------------------------------\033[0m\n");
 
     return 0;
 }
