@@ -309,16 +309,25 @@ int create_directory( FilePath *filepath, const char *dirname ) {
 
 // Function to list the contents of a specific directory
 int list_directory( FilePath *filepath ) {
-// Find the desired directory using find_directory
-    Dir_Entry target_dir = find_directory(filepath);
 
-    if ( target_dir.attributes == 0x00 || target_dir.attributes != 0x02 ) {
-        printf( "Error: Directory not found or invalid.\n" );
-        return -1;
+    struct dir_entry_s target_dir;
+    uint32_t dir_block;
+
+    // Special case: list the root directory if the path is empty
+    if (filepath->pathSize == 0) {
+        dir_block = ROOT_BLOCK;
+    } else {
+        // Find the desired directory using find_directory
+        target_dir = find_directory( filepath );
+
+        if (target_dir.attributes == 0x00 || target_dir.attributes != 0x02) {
+            printf("Error: Directory not found or invalid.\n");
+            return -1;
+        }
     }
 
     // Read the block from the found directory
-    uint32_t dir_block = target_dir.first_block;
+    dir_block = target_dir.first_block;
 
     for ( int i = 0; i < DIR_ENTRIES; i++ ) {
         Dir_Entry entry;
@@ -328,7 +337,7 @@ int list_directory( FilePath *filepath ) {
         if ( entry.attributes != 0x00 ) {
             printf("  - %s type %s, first block: %d, size: %d bytes\n",
                    entry.filename,
-                   (entry.attributes == 0x02) ? "Diretório" : "Arquivo",
+                   (entry.attributes == 0x02) ? "directory" : "archive",
                    entry.first_block,
                    entry.size);
         }
@@ -336,7 +345,6 @@ int list_directory( FilePath *filepath ) {
 
     return 0;
 }
-
 
 
 
