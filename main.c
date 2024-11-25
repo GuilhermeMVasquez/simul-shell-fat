@@ -99,6 +99,54 @@ void free_tokenized_result(TokenizedResult result) {
     free(result.tokens);
 }
 
+// Function to extract the string and repetition count
+char *parseAppendArgument(const char *arg, int *repetitions) {
+    *repetitions = 1; // Default repetitions
+    int len = strlen(arg);
+
+    // Validate starting and ending quote
+    if (len < 2 || arg[0] != '"' || strchr(arg + 1, '"') == NULL) {
+        return NULL; // Invalid pattern
+    }
+
+    // Find the closing quote for the string
+    const char *closingQuote = strchr(arg + 1, '"');
+    if (!closingQuote) {
+        return NULL; // No closing quote
+    }
+
+    // Calculate the length of the string part
+    int stringLength = closingQuote - (arg + 1);
+
+    // Allocate memory for the extracted string
+    char *extractedString = (char *)malloc(stringLength + 1);
+    if (!extractedString) {
+        perror("malloc failed");
+        return NULL; // Memory allocation error
+    }
+    strncpy(extractedString, arg + 1, stringLength);
+    extractedString[stringLength] = '\0'; // Null-terminate the string
+
+    // Check for optional "[rep]" part
+    if (*(closingQuote + 1) == '[' && *(arg + len - 1) == ']') {
+        const char *repStart = closingQuote + 2; // Start after '['
+        const char *repEnd = arg + len - 1;      // End before ']'
+
+        // Verify all characters in "[rep]" are digits
+        for (const char *p = repStart; p < repEnd; ++p) {
+            if (!isdigit(*p)) {
+                free(extractedString);
+                return NULL; // Invalid repetition format
+            }
+        }
+
+        // Parse repetition value
+        *repetitions = atoi(repStart);
+    }
+
+    return extractedString; // Return the extracted string
+}
+
 void executeCommand(Command *command, SystemState *sysState)
 {
     TokenizedResult tokens = tokenize_string(command->commandString);
@@ -203,10 +251,31 @@ void executeCommand(Command *command, SystemState *sysState)
     }
     else if (strcmp(tokens.tokens[0], "append") == 0)
     {
-        if (tokens.length <= 3) {
+        if (tokens.length <= 2) {
             printf("usage: append \"string\"[rep] [/caminho/arquivo]\n");
             return;
         }
+
+        int repetitions;
+        char *stringToAppend = parseAppendArgument(tokens.tokens[1], &repetitions);
+        printf("StringToAppend: %s\n", stringToAppend);
+
+        if (stringToAppend == NULL) {
+            printf("String nula");
+            printf("usage: append \"string\"[rep] [/caminho/arquivo]\n");
+            return;
+        }
+
+        printf("string: %s, amountOfTimes: %d\n", stringToAppend, repetitions);
+
+        FilePath *appendPath;
+        appendPath = initFilePathFromOtherPath(sysState->currentPath, tokens.tokens[2]);
+        appendPath->pathSize--;
+
+        append_file(appendPath, appendPath->pathTokens[appendPath->pathSize], stringToAppend);
+
+        free(appendPath);
+
 
         // FilePath *cdPath;
         // cdPath = initFilePathFromOtherPath(sysState->currentPath, tokens.tokens[1]);

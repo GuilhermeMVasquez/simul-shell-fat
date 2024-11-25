@@ -494,7 +494,7 @@ int append_file( FilePath *filepath, const char *filename, const uint8_t *data )
 
     // Update the file's size in its directory entry
     file_entry.size += data_offset;
-    write_dir_entry( parent_block, found, &file_entry );
+    write_dir_entry( parent_block, entry_index, &file_entry );
 
     fclose( fs );
     printf( "Appended %d bytes to the file '%s'.\n", data_offset, filename );
