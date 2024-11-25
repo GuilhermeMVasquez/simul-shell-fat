@@ -136,9 +136,6 @@ void executeCommand(Command *command, SystemState *sysState)
         return;
     }
 
-    printf("First token: '%s'\n", tokens.tokens[0]); // Add quotes to see trailing spaces
-    printf("Amount: %i\n", tokens.length);
-
     // Check for exact matches
     if (strcmp(tokens.tokens[0], "ls") == 0)
     {
@@ -160,7 +157,7 @@ void executeCommand(Command *command, SystemState *sysState)
         }
 
         FilePath *mkdirPath;
-        mkdirPath = initFilePath(tokens.tokens[1]);
+        mkdirPath = initFilePathFromOtherPath(sysState->currentPath, tokens.tokens[1]);
         mkdirPath->pathSize--;
 
         create_directory(mkdirPath, mkdirPath->pathTokens[mkdirPath->pathSize]);
@@ -174,7 +171,7 @@ void executeCommand(Command *command, SystemState *sysState)
         }
 
         FilePath *createPath;
-        createPath = initFilePath(tokens.tokens[1]);
+        createPath = initFilePathFromOtherPath(sysState->currentPath, tokens.tokens[1]);
         createPath->pathSize--;
 
         create_file(createPath, createPath->pathTokens[createPath->pathSize], 0, 0);
@@ -191,7 +188,7 @@ void executeCommand(Command *command, SystemState *sysState)
         }
 
         FilePath *cdPath;
-        cdPath = initFilePath(tokens.tokens[1]);
+        cdPath = initFilePathFromOtherPath(sysState->currentPath, tokens.tokens[1]);
 
         if (check_if_dir_exists(cdPath)) {
             free(sysState->currentPath);

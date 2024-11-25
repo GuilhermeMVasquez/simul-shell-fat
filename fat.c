@@ -77,7 +77,7 @@ void load_fat_from_disk() {
     fread(fat, sizeof(uint16_t), NUM_BLOCKS, fs);
     fclose(fs);
 
-    printf("FAT carregada do disco.\n");
+    printf("FAT loaded from disk.\n");
 }
 
 // função para encontrar o próximo bloco livre na FAT
