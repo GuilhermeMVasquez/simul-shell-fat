@@ -139,6 +139,21 @@ void executeCommand(Command *command, SystemState *sysState)
         printf("Exiting!\n");
         return;
     }
+    else if (strcmp(tokens.tokens[0], "create") == 0)
+    {
+        if (tokens.length <= 1) {
+            printf("usage: create [/caminho/arquivo]");
+        }
+
+        FilePath *createPath;
+        createPath = initFilePath(tokens.tokens[1]);
+        createPath->pathSize--;
+
+        create_file(createPath, createPath->pathTokens[createPath->pathSize], 0, 0);
+
+        if (tokens.length > 1)
+            free(createPath);
+    }
     else /* default: */
     {
         printf("Command not recognized: '%s'\n", tokens.tokens[0]);
