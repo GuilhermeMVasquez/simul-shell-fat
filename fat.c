@@ -58,13 +58,20 @@ void initialize_file_system() {
 }
 
 void save_fat_to_disk() {
-    FILE *fs = fopen("filesystem.dat", "wb");
-    if (fs == NULL) {
-        printf("Erro ao criar o arquivo filesystem.dat\n");
-        return;
+    FILE *fs = fopen( "filesystem.dat", "r+b" );
+    if ( fs == NULL ) {
+        // Attempt to create the file if it doesn't exist
+        fs = fopen( "filesystem.dat", "w+b" );
+        if ( fs == NULL ) {
+            printf( "Error: Could not open or create filesystem.dat.\n" );
+            return;
+        }
     }
-    fwrite(fat, sizeof(uint16_t), NUM_BLOCKS, fs);
-    fclose(fs);
+
+    // this is bug correction ( last version it causes a bug )
+    fseek( fs, 0, SEEK_SET );
+    size_t written = fwrite( fat, sizeof( uint16_t ), NUM_BLOCKS, fs );
+    fclose(fs);  
 }
 
 // função para carregar FAT de filesystem.dat para a memória
@@ -199,6 +206,8 @@ int create_file( FilePath *filepath, const char *name, const uint8_t *data, uint
     // Mark the last block as the end
     fat[ current_block ] = 0x7FFF;
 
+    save_fat_to_disk();
+
     // create archive entry in directory
     Dir_Entry new_entry;
     memset( &new_entry, 0, sizeof( Dir_Entry ) );
@@ -279,6 +288,8 @@ int create_directory( FilePath *filepath, const char *dirname ) {
         printf("Error: There are no free blocks for the final directory.\n");
         return -1;
     }
+
+    save_fat_to_disk();
 
     // Initialize the final directory block with 32 empty entries
     uint8_t data_block[ BLOCK_SIZE ] = {0};
@@ -365,6 +376,125 @@ char check_if_dir_exists( FilePath *filepath )
         return 1;
     }
 }
+
+int find_file_in_directory(uint32_t parent_block, const char *filename, struct dir_entry_s *file_entry) {
+    for (int i = 0; i < DIR_ENTRIES; i++) {
+        read_dir_entry(parent_block, i, file_entry);
+
+        if (file_entry->attributes == 0x01 && strncmp((char *)file_entry->filename, filename, 25) == 0) {
+            // File found, return its index
+            return i;
+        }
+    }
+
+    // File not found
+    printf("Error: File '%s' not found.\n", filename);
+    return -1;
+}
+
+int append_file( FilePath *filepath, const char *filename, const uint8_t *data ) {
+
+    if (data == NULL) {
+        printf("Error: Trying to append nothing\n");
+        return -1;
+    }
+
+    // Calculating the data entry size 
+    uint32_t data_size = strlen( ( char * ) data );  
+
+    uint32_t parent_block;
+    struct dir_entry_s file_entry;
+    int found = 0;
+
+    // Handle root case or find the parent directory
+    if ( filepath->pathSize == 0 ) {
+        // File is in the root directory
+        parent_block = ROOT_BLOCK;
+    } else {
+        // File is in a subdirectory; locate the directory
+        struct dir_entry_s target_dir = find_directory( filepath );
+        if (target_dir.attributes == 0x00 || target_dir.attributes != 0x02) {
+            printf("Error: Directory not found or invalid.\n");
+            return -1;
+        }
+        parent_block = target_dir.first_block;
+    }
+
+    int entry_index = find_file_in_directory( parent_block, filename, &file_entry );
+    if (entry_index == -1) 
+        return -1;  // File not found, error already printed by find_file_in_directory
+
+    //Find the last block of the file
+    uint32_t current_block = file_entry.first_block;
+    uint32_t last_block = current_block;
+
+    while (fat[ current_block ] != 0x7FFF) {  // 0x7FFF indicates the last block
+        last_block = current_block;
+        current_block = fat[ current_block ];
+    }
+
+    //Check for free space in the last block
+    uint8_t buffer[ BLOCK_SIZE ];
+    read_block( "filesystem.dat", current_block, buffer );
+
+    uint32_t used_space_in_last_block = file_entry.size % BLOCK_SIZE;
+    uint32_t free_space_in_last_block = BLOCK_SIZE - used_space_in_last_block;
+
+    //Write data to the file
+    FILE *fs = fopen( "filesystem.dat", "r+b" );
+    if (fs == NULL) {
+        printf( "Error opening filesystem file.\n" );
+        return -1;
+    }
+
+    uint32_t data_offset = 0;
+
+    // If there is space in the last block, write data to it
+    if ( free_space_in_last_block > 0 ) {
+        uint32_t bytes_to_write = ( data_size > free_space_in_last_block ) ? free_space_in_last_block : data_size;
+        fseek( fs, last_block * BLOCK_SIZE + used_space_in_last_block, SEEK_SET );
+        fwrite( &data[ data_offset ], 1, bytes_to_write, fs );
+
+        data_offset += bytes_to_write;
+        data_size -= bytes_to_write;
+    }
+
+    //Allocate new blocks if needed
+    while ( data_size > 0 ) {
+        int new_block = allocate_block();
+        if (new_block == -1) {
+            printf( "Error: No space left to continue appending to the file.\n" );
+            fclose( fs );
+            return -1;
+        }
+
+        // Update FAT to chain the new block
+        fat[ last_block ] = new_block;
+        last_block = new_block;
+
+        // Write data to the new block
+        uint32_t bytes_to_write = ( data_size > BLOCK_SIZE ) ? BLOCK_SIZE : data_size;
+        fseek( fs, last_block * BLOCK_SIZE, SEEK_SET );
+        fwrite( &data[ data_offset ], 1, bytes_to_write, fs );
+
+        data_offset += bytes_to_write;
+        data_size -= bytes_to_write;
+    }
+
+    //Mark the new last block in FAT
+    fat[ last_block ] = 0x7FFF;
+
+    save_fat_to_disk();
+
+    // Update the file's size in its directory entry
+    file_entry.size += data_offset;
+    write_dir_entry( parent_block, found, &file_entry );
+
+    fclose( fs );
+    printf( "Appended %d bytes to the file '%s'.\n", data_offset, filename );
+    return 0;
+}
+
 
 
 
