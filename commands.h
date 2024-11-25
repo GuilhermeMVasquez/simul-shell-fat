@@ -16,6 +16,7 @@
 #define CD "cd"
 #define EXIT "exit"
 #define CLEAR "clear"
+#define MAN "man"
 
 typedef struct Command {
     char *commandString;

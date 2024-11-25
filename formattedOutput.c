@@ -9,6 +9,48 @@
 
 // ##### DEFAULT LINE START #################################################################################
 
+void printManLine(char *commandName, char *arg1, char *arg2, char *whatDoes, char *example)
+{
+    colorBrightCyan();
+    printf(" - ");
+    colorGreen();
+    printf("%s", commandName);
+
+    if (arg1 != NULL) {
+        colorHighIntensityYellow();
+        printf(" %s", arg1);
+    }
+
+    if (arg2 != NULL) {
+        colorHighIntensityMagenta();
+        printf(" %s", arg1);
+    }
+
+    colorHighIntensityBlue();
+    printf("\n   What it does: ");
+    resetColor();
+    printf("%s\n", whatDoes);
+
+    colorItalicBrightWhite();
+    printf("   Example: ");
+    resetColor();
+    printf("%s\n\n", example);
+    resetColor();
+}
+
+void printMan()
+{
+    colorWhite();
+    printf("Default Commands:\n");
+    printManLine("init", NULL, NULL, "Formats the FAT, restarting it to it's default start (empty).", "init");
+    printManLine("load", NULL, NULL, "Uses the FAT that is on Disk.", "load");
+    printManLine("ls", "[/path/directory]", NULL, "List all the directories in the given path.", "ls /users/sergio");
+    printManLine("mkdir", "[/path/directory]", NULL, "Creates an empty directory in the given path.", "mkdir Desktop/PUCRS/5SEM");
+    printManLine("create", "[/path/directory]", NULL, "Creates an empty file in the given path.", "create Desktop/PUCRS/5SEM/main.c");
+    printManLine("unlink", "[/path/directory]", NULL, "Deletes a file or an empty directory with the given path.", "unlink Desktop/PUCRS/5SEM/main.c");
+    printManLine("write", "\"string\"[rep]", "[/path/directory]", "Writes data into a file \e[3mrep\e[0m times. (overwriting data, flushing file initially)", "write \"abc\"[5] Desktop/PUCRS/5SEM/main.c");
+}
+
 void printUserAndMachine()
 {
     colorBrightGreen();

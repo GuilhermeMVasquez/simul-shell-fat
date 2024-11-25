@@ -6,4 +6,6 @@
 
 void printLineShell(SystemState* sysState, ShellState* shellState);
 
+void printMan();
+
 #endif // FORMATTEDOUTPUT_H

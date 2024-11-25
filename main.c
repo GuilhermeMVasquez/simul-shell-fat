@@ -9,6 +9,7 @@
 #include "FilePath.h"
 #include "fat.h"
 #include "commands.h"
+#include "formattedOutput.h"
 
 void clearScreen()
 {
@@ -179,6 +180,11 @@ void executeCommand(Command *command, SystemState *sysState)
     else if (strcmp(tokens.tokens[0], "clear") == 0)
     {
         clearScreen();
+        return;
+    }
+    else if (strcmp(tokens.tokens[0], "man") == 0)
+    {
+        printMan();
         return;
     }
     else if (sysState->hasFAT == 0)
