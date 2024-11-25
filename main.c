@@ -117,6 +117,21 @@ void executeCommand(Command *command, SystemState *sysState)
 
         if (tokens.length > 1)
             free(lsPath);
+    } 
+    else if (strcmp(tokens.tokens[0], "mkdir") == 0)
+    {
+        if (tokens.length <= 1) {
+            printf("usage: mkdir [/caminho/diretório]");
+        }
+
+        FilePath *mkdirPath;
+        mkdirPath = initFilePath(tokens.tokens[1]);
+        mkdirPath->pathSize--;
+
+        create_directory(mkdirPath, mkdirPath->pathTokens[mkdirPath->pathSize]);
+
+        if (tokens.length > 1)
+            free(mkdirPath);
     }
     else /* default: */
     {
