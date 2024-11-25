@@ -151,16 +151,22 @@ Dir_Entry find_directory(FilePath *filepath) {
 
  /* Create regular file */
 int create_file( FilePath *filepath, const char *name, const uint8_t *data, uint32_t size ) {
-    // Find the destination directory using the find_directory helper function
-    Dir_Entry parent_dir = find_directory( filepath );
+    uint32_t parent_block;
 
-    // look if directory is found
-    if ( parent_dir.attributes == 0x00 ) {
-        printf( "Error: directory not found.\n" );
-        return -1;
+    if (filepath->pathSize == 0) {
+        parent_block = ROOT_BLOCK;
+    } else {
+        // Find the destination directory using the find_directory helper function
+        Dir_Entry parent_dir = find_directory( filepath );
+
+        // look if directory is found
+        if ( parent_dir.attributes == 0x00 ) {
+            printf( "Error: directory not found.\n" );
+            return -1;
+        }
+
+        parent_block = parent_dir.first_block;
     }
-
-    uint32_t parent_block = parent_dir.first_block;  
 
     //allocating the first block 
     int first_block = allocate_block();

@@ -154,6 +154,7 @@ void executeCommand(Command *command, SystemState *sysState)
     {
         if (tokens.length <= 1) {
             printf("usage: mkdir [/caminho/diretório]");
+            return;
         }
 
         FilePath *mkdirPath;
@@ -168,6 +169,7 @@ void executeCommand(Command *command, SystemState *sysState)
     {
         if (tokens.length <= 1) {
             printf("usage: create [/caminho/arquivo]");
+            return;
         }
 
         FilePath *createPath;
@@ -198,6 +200,25 @@ void executeCommand(Command *command, SystemState *sysState)
             printf("error: %s directory not found!", tokens.tokens[1]);
             free(cdPath);
         }
+    }
+    else if (strcmp(tokens.tokens[0], "append") == 0)
+    {
+        if (tokens.length <= 3) {
+            printf("usage: append \"string\"[rep] [/caminho/arquivo]\n");
+            return;
+        }
+
+        // FilePath *cdPath;
+        // cdPath = initFilePathFromOtherPath(sysState->currentPath, tokens.tokens[1]);
+
+        // if (check_if_dir_exists(cdPath)) {
+        //     free(sysState->currentPath);
+        //     sysState->currentPath = cdPath;
+        // }
+        // else {
+        //     printf("error: %s directory not found!", tokens.tokens[1]);
+        //     free(cdPath);
+        // }
     }
     else /* command not found */
     {
