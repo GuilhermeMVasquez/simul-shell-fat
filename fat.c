@@ -405,8 +405,8 @@ int append_file( FilePath *filepath, const char *filename, const uint8_t *data, 
         return -1;
     }
 
-    if (repetitions > 1)
-        append_file(filepath, filename, data, repetitions-1);
+    // if (repetitions > 1)
+    //     append_file(filepath, filename, data, repetitions-1);
 
     // Calculating the data entry size 
     uint32_t data_size = strlen( ( char * ) data );  
@@ -437,17 +437,21 @@ int append_file( FilePath *filepath, const char *filename, const uint8_t *data, 
     uint32_t current_block = file_entry.first_block;
     uint32_t last_block = current_block;
 
-    while (fat[ current_block ] != 0x7FFF) {  // 0x7FFF indicates the last block
-        last_block = current_block;
+    while ( fat[ current_block ] != 0x7FFF ) {  // 0x7FFF indicates the last block
         current_block = fat[ current_block ];
+        last_block = current_block;
     }
 
     //Check for free space in the last block
     uint8_t buffer[ BLOCK_SIZE ];
     read_block( "filesystem.dat", current_block, buffer );
 
-    uint32_t used_space_in_last_block = file_entry.size % BLOCK_SIZE;
-    uint32_t free_space_in_last_block = BLOCK_SIZE - used_space_in_last_block;
+// Calculate the used and free space in the last block
+uint32_t used_space_in_last_block = file_entry.size % BLOCK_SIZE;
+uint32_t free_space_in_last_block = (used_space_in_last_block == 0 && file_entry.size > 0)
+                                        ? 0  // Last block is completely full
+                                        : BLOCK_SIZE - used_space_in_last_block;
+
 
     //Write data to the file
     FILE *fs = fopen( "filesystem.dat", "r+b" );
