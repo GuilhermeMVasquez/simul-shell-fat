@@ -23,17 +23,17 @@ void initialize_fat() {
 }
 
 /* reads a directory entry from a directory */
-void read_dir_entry(uint32_t block, uint32_t entry, struct dir_entry_s *dir_entry)
+void read_dir_entry(uint32_t block, uint32_t entry, Dir_Entry *dir_entry)
 {
 	read_block("filesystem.dat", block, data_block);
-	memcpy(dir_entry, &data_block[entry * sizeof(struct dir_entry_s)], sizeof(struct dir_entry_s));
+	memcpy(dir_entry, &data_block[entry * sizeof(Dir_Entry)], sizeof(Dir_Entry));
 }
 
 /* writes a directory entry in a directory */
-void write_dir_entry(uint32_t block, uint32_t entry, struct dir_entry_s *dir_entry)
+void write_dir_entry(uint32_t block, uint32_t entry, Dir_Entry *dir_entry)
 {
 	read_block("filesystem.dat", block, data_block);
-	memcpy(&data_block[entry * sizeof(struct dir_entry_s)], dir_entry, sizeof(struct dir_entry_s));
+	memcpy(&data_block[entry * sizeof(Dir_Entry)], dir_entry, sizeof(Dir_Entry));
 	write_block("filesystem.dat", block, data_block);
 }
 
@@ -111,9 +111,8 @@ void free_blocks(int initial_block) {
 }
 
 /* find specific directory */
-struct dir_entry_s find_directory( const char *path[], int path_length ) {
-
-    struct dir_entry_s entry;          
+Dir_Entry find_directory( const char *path[], int path_length ) {
+    Dir_Entry entry;          
     memset( &entry, 0, sizeof( entry)  );    
     uint32_t parent_block = ROOT_BLOCK; 
 
@@ -145,7 +144,7 @@ struct dir_entry_s find_directory( const char *path[], int path_length ) {
  /* Create regular file */
 int create_file( const char *path[], int path_length, const char *name, const uint8_t *data, uint32_t size ) {
     // Find the destination directory using the find_directory helper function
-    struct dir_entry_s parent_dir = find_directory( path, path_length );
+    Dir_Entry parent_dir = find_directory( path, path_length );
 
     // look if directory is found
     if ( parent_dir.attributes == 0x00 ) {
@@ -200,8 +199,8 @@ int create_file( const char *path[], int path_length, const char *name, const ui
     fat[ current_block ] = 0x7FFF;
 
     // create archive entry in directory
-    struct dir_entry_s new_entry;
-    memset( &new_entry, 0, sizeof( struct dir_entry_s ) );
+    Dir_Entry new_entry;
+    memset( &new_entry, 0, sizeof( Dir_Entry ) );
     strncpy( ( char * )new_entry.filename, name, 25 );
     new_entry.attributes = 0x01;  // regular archive
     new_entry.first_block = first_block;
@@ -209,7 +208,7 @@ int create_file( const char *path[], int path_length, const char *name, const ui
 
     //Add the entry to the destination directory
     for ( int i = 0; i < DIR_ENTRIES; i++ ) {
-        struct dir_entry_s temp_entry;
+        Dir_Entry temp_entry;
         read_dir_entry( parent_block, i, &temp_entry );
 
         if ( temp_entry.attributes == 0x00 ) {  // Entrada vazia
@@ -250,7 +249,7 @@ void write_block(char *file, uint32_t block, uint8_t *record)
 
 int create_directory( const char *path[], int path_length, const char *dirname ) {
     uint32_t parent_block = ROOT_BLOCK;  // Starts in the root directory
-    struct dir_entry_s entry;
+    Dir_Entry entry;
 
     //Traverse the directories in the path
     for ( int i = 0; i < path_length; i++ ) {
@@ -285,7 +284,7 @@ int create_directory( const char *path[], int path_length, const char *dirname )
     write_block( "filesystem.dat", new_dir_block, data_block );
 
     // Create the final directory entry
-    memset( &entry, 0, sizeof( struct dir_entry_s ) );
+    memset( &entry, 0, sizeof( Dir_Entry ) );
     strncpy( ( char * )entry.filename, dirname, 25 );
     entry.attributes = 0x02;  // directory
     entry.first_block = new_dir_block;
@@ -293,7 +292,7 @@ int create_directory( const char *path[], int path_length, const char *dirname )
 
     // Add entry to parent directory    
     for ( int j = 0; j < DIR_ENTRIES; j++ ) {
-        struct dir_entry_s temp_entry;
+        Dir_Entry temp_entry;
         read_dir_entry( parent_block, j, &temp_entry );
 
         if ( temp_entry.attributes == 0x00 ) {  // Entrada vazia
@@ -310,7 +309,7 @@ int create_directory( const char *path[], int path_length, const char *dirname )
 // Function to list the contents of a specific directory
 int list_directory( const char *path[], int path_length ) {
 // Find the desired directory using find_directory
-    struct dir_entry_s target_dir = find_directory( path, path_length );
+    Dir_Entry target_dir = find_directory( path, path_length );
 
     if ( target_dir.attributes == 0x00 || target_dir.attributes != 0x02 ) {
         printf( "Error: Directory not found or invalid.\n" );
@@ -321,7 +320,7 @@ int list_directory( const char *path[], int path_length ) {
     uint32_t dir_block = target_dir.first_block;
 
     for ( int i = 0; i < DIR_ENTRIES; i++ ) {
-        struct dir_entry_s entry;
+        Dir_Entry entry;
         read_dir_entry(dir_block, i, &entry);
 
         // Checks if the input is not empty

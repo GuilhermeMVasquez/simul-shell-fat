@@ -17,12 +17,12 @@ uint16_t fat[NUM_BLOCKS];
 uint8_t data_block[BLOCK_SIZE];
 
 /* Estrutura para uma entrada de diretório */
-struct dir_entry_s {
+typedef struct dir_entry_s {
     int8_t filename[25];
     uint8_t attributes;
     uint16_t first_block;
     uint32_t size;
-};
+} Dir_Entry;
 
 /* save the fat in disk */
 void save_fat_to_disk();

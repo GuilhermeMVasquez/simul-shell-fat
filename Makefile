@@ -8,7 +8,7 @@ CFLAGS = -Wall -Wextra -g
 TARGET = main
 
 # Source files
-SRC = main.c shell.c colors.c commands.c formattedOutput.c fat.c
+SRC = main.c shell.c colors.c commands.c formattedOutput.c fat.c FilePath.c
 
 # Default target
 all:
