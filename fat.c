@@ -324,10 +324,11 @@ int list_directory( FilePath *filepath ) {
             printf("Error: Directory not found or invalid.\n");
             return -1;
         }
+
+        // Read the block from the found directory
+        dir_block = target_dir.first_block;
     }
 
-    // Read the block from the found directory
-    dir_block = target_dir.first_block;
 
     for ( int i = 0; i < DIR_ENTRIES; i++ ) {
         Dir_Entry entry;
@@ -345,6 +346,7 @@ int list_directory( FilePath *filepath ) {
 
     return 0;
 }
+
 
 
 
