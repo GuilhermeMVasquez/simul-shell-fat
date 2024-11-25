@@ -15,6 +15,7 @@
 #define READ "read"
 #define CD "cd"
 #define EXIT "exit"
+#define CLEAR "clear"
 
 typedef struct Command {
     char *commandString;

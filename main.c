@@ -2,12 +2,19 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <unistd.h>
 
 #include "shell.h"
 #include "systemState.h"
 #include "FilePath.h"
 #include "fat.h"
 #include "commands.h"
+
+void clearScreen()
+{
+  const char *CLEAR_SCREEN_ANSI = "\e[1;1H\e[2J";
+  write(STDOUT_FILENO, CLEAR_SCREEN_ANSI, 12);
+}
 
 // Define a struct to hold tokens and their count
 typedef struct {
@@ -117,6 +124,11 @@ void executeCommand(Command *command, SystemState *sysState)
     {
         sysState->hasEnded = 1;
         printf("Exiting!\n");
+        return;
+    }
+    else if (strcmp(tokens.tokens[0], "clear") == 0)
+    {
+        clearScreen();
         return;
     }
     else if (sysState->hasFAT == 0)

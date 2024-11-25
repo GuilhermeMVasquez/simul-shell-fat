@@ -1,7 +1,7 @@
 #include "commands.h"
 
 char *getCommandsAutocomplete(char *prefix) {
-    char *commands[] = {LS, CD, INIT, LOAD, EXIT, READ, MKDIR, WRITE, CREATE, UNLINK, APPEND};
+    char *commands[] = {LS, CD, INIT, LOAD, EXIT, READ, CLEAR, MKDIR, WRITE, CREATE, UNLINK, APPEND};
     int numCommands = sizeof(commands) / sizeof(commands[0]);
 
     for (int i = 0; i < numCommands; i++) {
