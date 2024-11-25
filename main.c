@@ -123,7 +123,6 @@ void executeCommand(Command *command, SystemState *sysState)
     else if (strcmp(tokens.tokens[0], "exit") == 0)
     {
         sysState->hasEnded = 1;
-        printf("Exiting!\n");
         return;
     }
     else if (strcmp(tokens.tokens[0], "clear") == 0)
@@ -153,7 +152,7 @@ void executeCommand(Command *command, SystemState *sysState)
 
         if (tokens.length > 1)
             free(lsPath);
-    } 
+    }
     else if (strcmp(tokens.tokens[0], "mkdir") == 0)
     {
         if (tokens.length <= 1) {
@@ -165,9 +164,8 @@ void executeCommand(Command *command, SystemState *sysState)
         mkdirPath->pathSize--;
 
         create_directory(mkdirPath, mkdirPath->pathTokens[mkdirPath->pathSize]);
-
-        if (tokens.length > 1)
-            free(mkdirPath);
+    
+        free(mkdirPath);
     }
     else if (strcmp(tokens.tokens[0], "create") == 0)
     {
@@ -180,13 +178,30 @@ void executeCommand(Command *command, SystemState *sysState)
         createPath->pathSize--;
 
         create_file(createPath, createPath->pathTokens[createPath->pathSize], 0, 0);
-
-        if (tokens.length > 1)
-            free(createPath);
-    } 
-    else /* default: */
+        
+        free(createPath);
+    }
+    else if (strcmp(tokens.tokens[0], "cd") == 0)
     {
-        printf("Command not recognized: '%s'\n", tokens.tokens[0]);
+        if (tokens.length <= 1) {
+            printf("usage: cd [/caminho/diretório]");
+        }
+
+        FilePath *cdPath;
+        cdPath = initFilePath(tokens.tokens[1]);
+
+        if (check_if_dir_exists(cdPath)) {
+            free(sysState->currentPath);
+            sysState->currentPath = cdPath;
+        }
+        else {
+            printf("error: %s directory not found!", tokens.tokens[1]);
+            free(cdPath);
+        }
+    }
+    else /* command not found */
+    {
+        printf("command not found: %s\n", tokens.tokens[0]);
     }
 
     free_tokenized_result(tokens);

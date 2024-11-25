@@ -53,5 +53,6 @@ int create_directory( FilePath *filepath, const char *dirname );
 
 int list_directory( FilePath *filepath );
 
+char check_if_dir_exists( FilePath *filepath );
 
 #endif // FAT_H

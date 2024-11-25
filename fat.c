@@ -309,7 +309,6 @@ int create_directory( FilePath *filepath, const char *dirname ) {
 
 // Function to list the contents of a specific directory
 int list_directory( FilePath *filepath ) {
-
     struct dir_entry_s target_dir;
     uint32_t dir_block;
 
@@ -345,6 +344,26 @@ int list_directory( FilePath *filepath ) {
     }
 
     return 0;
+}
+
+char check_if_dir_exists( FilePath *filepath )
+{
+    struct dir_entry_s target_dir;
+
+    // Special case: list the root directory if the path is empty
+    if (filepath->pathSize == 0) {
+        return 1;
+    } else {
+        // Find the desired directory using find_directory
+        target_dir = find_directory( filepath );
+
+        if (target_dir.attributes == 0x00 || target_dir.attributes != 0x02) {
+            // Directory not found or invalid.
+            return 0;
+        }
+
+        return 1;
+    }
 }
 
 
