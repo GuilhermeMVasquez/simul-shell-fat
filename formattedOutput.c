@@ -25,8 +25,16 @@ void printSeparator()
 
 void printCurrentPath(SystemState* sysState)
 {
-    colorBlue();
-    printf("%s", sysState->currentPath);
+    for (int i = 0; i < sysState->currentPath->pathSize; i++) {
+        colorBlue();
+        printf("%s", sysState->currentPath->pathTokens[i]);
+        if (i != sysState->currentPath->pathSize-1) {
+            colorCyan();
+            printf("/");
+        }
+            
+    }
+        
     resetColor();
 }
 

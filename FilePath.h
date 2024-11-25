@@ -2,7 +2,7 @@
 #define FILEPATH_H
 
 typedef struct FilePath {
-    char **currentPath;
+    char **pathTokens;
     int pathSize;
 } FilePath;
 

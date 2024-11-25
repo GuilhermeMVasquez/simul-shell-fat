@@ -11,7 +11,7 @@ FilePath *initFilePath(char *pathAsStr)
     }
 
     // Initialize members
-    filePath->currentPath = NULL;
+    filePath->pathTokens = NULL;
     filePath->pathSize = 0;
 
     // Count tokens to determine the number of path components
@@ -30,8 +30,8 @@ FilePath *initFilePath(char *pathAsStr)
     free(tempStr); // Free the temporary string
 
     // Allocate memory for the array of path components
-    filePath->currentPath = malloc(sizeof(char *) * count);
-    if (!filePath->currentPath) {
+    filePath->pathTokens = malloc(sizeof(char *) * count);
+    if (!filePath->pathTokens) {
         free(filePath);
         return NULL; // Allocation failed
     }
@@ -39,7 +39,7 @@ FilePath *initFilePath(char *pathAsStr)
     // Tokenize again to fill the path components
     tempStr = strdup(pathAsStr);
     if (!tempStr) {
-        free(filePath->currentPath);
+        free(filePath->pathTokens);
         free(filePath);
         return NULL; // Allocation failed
     }
@@ -47,13 +47,13 @@ FilePath *initFilePath(char *pathAsStr)
     token = strtok(tempStr, "/");
     int index = 0;
     while (token) {
-        filePath->currentPath[index] = strdup(token); // Duplicate each token
-        if (!filePath->currentPath[index]) {
+        filePath->pathTokens[index] = strdup(token); // Duplicate each token
+        if (!filePath->pathTokens[index]) {
             // Free previously allocated memory on failure
             for (int i = 0; i < index; i++) {
-                free(filePath->currentPath[i]);
+                free(filePath->pathTokens[i]);
             }
-            free(filePath->currentPath);
+            free(filePath->pathTokens);
             free(filePath);
             free(tempStr);
             return NULL;

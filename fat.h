@@ -1,8 +1,8 @@
 #ifndef FAT_H
 #define FAT_H
 
-
 #include <stdint.h>
+#include "FilePath.h"
 
 /* Número de blocos no sistema */
 #define NUM_BLOCKS 2048
@@ -38,7 +38,7 @@ int allocate_block();
 
 void free_blocks(int initial_block);
 
-int create_file( const char *path[], int path_length, const char *name, const uint8_t *data, uint32_t size );
+int create_file( FilePath *filepath, const char *name, const uint8_t *data, uint32_t size );
 
 
 void read_block(char *file, uint32_t block, uint8_t *record);
@@ -49,9 +49,9 @@ void write_block(char *file, uint32_t block, uint8_t *record);
 /* initialize the file system */
 void initialize_file_system();
 
-int create_directory(const char *path[], int path_length, const char *dirname);
+int create_directory( FilePath *filepath, const char *dirname );
 
-int list_directory(const char *path[], int path_length);
+int list_directory( FilePath *filepath );
 
 
 #endif // FAT_H

@@ -1,8 +1,9 @@
-#include "fat.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 
+#include "fat.h"
+#include "FilePath.h"
 
 /* FAT e funções associadas */
 
@@ -111,19 +112,19 @@ void free_blocks(int initial_block) {
 }
 
 /* find specific directory */
-Dir_Entry find_directory( const char *path[], int path_length ) {
-    Dir_Entry entry;          
-    memset( &entry, 0, sizeof( entry)  );    
+Dir_Entry find_directory(FilePath *filepath) {
+    Dir_Entry entry;
+    memset( &entry, 0, sizeof( entry)  );
     uint32_t parent_block = ROOT_BLOCK; 
 
-    for ( int i = 0; i < path_length; i++ ) {
+    for ( int i = 0; i < filepath->pathSize; i++ ) {
         int found = 0;
 
         // loop through entries in the current directory
         for ( int j = 0; j < DIR_ENTRIES; j++ ) {
             read_dir_entry( parent_block, j, &entry );
 
-            if ( entry.attributes == 0x02 && strncmp(( char * )entry.filename, path[ i ], 25 ) == 0 ) {
+            if ( entry.attributes == 0x02 && strncmp(( char * )entry.filename, filepath->pathTokens[ i ], 25 ) == 0 ) {
                 // directory found
                 parent_block = entry.first_block; 
                 found = 1;
@@ -132,7 +133,7 @@ Dir_Entry find_directory( const char *path[], int path_length ) {
         }
 
         if ( !found ) {
-            printf( "Error: directory '%s' not found.\n", path[ i ] );
+            printf( "Error: directory '%s' not found.\n", filepath->pathTokens[ i ] );
             memset( &entry, 0, sizeof( entry ) );  // return a clean directory
             return entry;
         }
@@ -142,9 +143,9 @@ Dir_Entry find_directory( const char *path[], int path_length ) {
 }
 
  /* Create regular file */
-int create_file( const char *path[], int path_length, const char *name, const uint8_t *data, uint32_t size ) {
+int create_file( FilePath *filepath, const char *name, const uint8_t *data, uint32_t size ) {
     // Find the destination directory using the find_directory helper function
-    Dir_Entry parent_dir = find_directory( path, path_length );
+    Dir_Entry parent_dir = find_directory( filepath );
 
     // look if directory is found
     if ( parent_dir.attributes == 0x00 ) {
@@ -247,19 +248,19 @@ void write_block(char *file, uint32_t block, uint8_t *record)
 }
 
 
-int create_directory( const char *path[], int path_length, const char *dirname ) {
+int create_directory( FilePath *filepath, const char *dirname ) {
     uint32_t parent_block = ROOT_BLOCK;  // Starts in the root directory
     Dir_Entry entry;
 
     //Traverse the directories in the path
-    for ( int i = 0; i < path_length; i++ ) {
+    for ( int i = 0; i < filepath->pathSize; i++ ) {
         int found = 0;
 
     // Cycle through the current directory entries to find the next level of the path
         for ( int j = 0; j < DIR_ENTRIES; j++ ) {
             read_dir_entry( parent_block, j, &entry );
 
-            if ( entry.attributes == 0x02 && strncmp(( char * )entry.filename, path[ i ], 25) == 0 ) {
+            if ( entry.attributes == 0x02 && strncmp(( char * )entry.filename, filepath->pathTokens[ i ], 25) == 0 ) {
                 // Diretório encontrado
                 parent_block = entry.first_block;  // Avança para o próximo bloco
                 found = 1;
@@ -307,9 +308,9 @@ int create_directory( const char *path[], int path_length, const char *dirname )
 }
 
 // Function to list the contents of a specific directory
-int list_directory( const char *path[], int path_length ) {
+int list_directory( FilePath *filepath ) {
 // Find the desired directory using find_directory
-    Dir_Entry target_dir = find_directory( path, path_length );
+    Dir_Entry target_dir = find_directory(filepath);
 
     if ( target_dir.attributes == 0x00 || target_dir.attributes != 0x02 ) {
         printf( "Error: Directory not found or invalid.\n" );
