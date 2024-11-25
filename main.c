@@ -183,8 +183,11 @@ void executeCommand(Command *command, SystemState *sysState)
     }
     else if (strcmp(tokens.tokens[0], "cd") == 0)
     {
-        if (tokens.length <= 1) {
-            printf("usage: cd [/caminho/diretório]");
+        if (tokens.length == 1) {
+            FilePath *rootPath = initFilePath("");
+            free(sysState->currentPath);
+            sysState->currentPath = rootPath;
+            return;
         }
 
         FilePath *cdPath;
