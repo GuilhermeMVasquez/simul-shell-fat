@@ -144,7 +144,7 @@ void executeCommand(Command *command, SystemState *sysState)
     {
         FilePath *lsPath;
         if (tokens.length > 1)
-            lsPath = initFilePath(tokens.tokens[1]);
+            lsPath = initFilePathFromOtherPath(sysState->currentPath, tokens.tokens[1]);
         else
             lsPath = sysState->currentPath;
 

@@ -66,3 +66,85 @@ FilePath *initFilePath(char *pathAsStr)
 
     return filePath;
 }
+
+FilePath *initFilePathFromOtherPath(FilePath *start, char *pathToAppend)
+{
+    // Check if the new path is absolute
+    if (pathToAppend[0] == '/') {
+        return initFilePath(pathToAppend);
+    }
+
+    // Calculate the total number of tokens in the new path
+    char *tempStr = strdup(pathToAppend);
+    if (!tempStr) {
+        return NULL; // Allocation failed
+    }
+
+    int newTokensCount = 0;
+    char *token = strtok(tempStr, "/");
+    while (token) {
+        newTokensCount++;
+        token = strtok(NULL, "/");
+    }
+    free(tempStr);
+
+    // Create a new FilePath structure
+    FilePath *newFilePath = malloc(sizeof(FilePath));
+    if (!newFilePath) {
+        return NULL; // Allocation failed
+    }
+
+    // Calculate total size for pathTokens
+    newFilePath->pathSize = start->pathSize + newTokensCount;
+    newFilePath->pathTokens = malloc(sizeof(char *) * newFilePath->pathSize);
+    if (!newFilePath->pathTokens) {
+        free(newFilePath);
+        return NULL; // Allocation failed
+    }
+
+    // Copy tokens from the start FilePath
+    for (int i = 0; i < start->pathSize; i++) {
+        newFilePath->pathTokens[i] = strdup(start->pathTokens[i]);
+        if (!newFilePath->pathTokens[i]) {
+            // Free allocated memory on failure
+            for (int j = 0; j < i; j++) {
+                free(newFilePath->pathTokens[j]);
+            }
+            free(newFilePath->pathTokens);
+            free(newFilePath);
+            return NULL;
+        }
+    }
+
+    // Tokenize pathToAppend and add tokens to the new FilePath
+    tempStr = strdup(pathToAppend);
+    if (!tempStr) {
+        for (int i = 0; i < start->pathSize; i++) {
+            free(newFilePath->pathTokens[i]);
+        }
+        free(newFilePath->pathTokens);
+        free(newFilePath);
+        return NULL;
+    }
+
+    token = strtok(tempStr, "/");
+    int index = start->pathSize;
+    while (token) {
+        newFilePath->pathTokens[index] = strdup(token);
+        if (!newFilePath->pathTokens[index]) {
+            // Free allocated memory on failure
+            for (int i = 0; i < index; i++) {
+                free(newFilePath->pathTokens[i]);
+            }
+            free(newFilePath->pathTokens);
+            free(newFilePath);
+            free(tempStr);
+            return NULL;
+        }
+        index++;
+        token = strtok(NULL, "/");
+    }
+    free(tempStr);
+
+    return newFilePath;
+}

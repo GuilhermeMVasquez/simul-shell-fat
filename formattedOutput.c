@@ -25,12 +25,13 @@ void printSeparator()
 
 void printCurrentPath(SystemState* sysState)
 {
-    colorBlue();
-    if (sysState->currentPath->pathSize == 0)
-        printf("/");
+    if (sysState->hasFAT == 0)
+        return;
+    colorCyan();    
+    printf("/");
 
     for (int i = 0; i < sysState->currentPath->pathSize; i++) {
-        
+        colorBlue();    
         printf("%s", sysState->currentPath->pathTokens[i]);
         if (i != sysState->currentPath->pathSize-1) {
             colorCyan();
