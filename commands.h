@@ -16,8 +16,7 @@
 #define CD "cd"
 
 typedef struct Command {
-    char *commandName;
-    char *path;
+    char *commandString;
 } Command;
 
 // Function prototype

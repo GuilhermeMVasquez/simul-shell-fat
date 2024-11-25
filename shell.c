@@ -92,5 +92,8 @@ Command* shellCycle(SystemState* systemState, char *hasEnded)
         printLineShell(systemState, shellState);
         // printf("\n%d", ch);
     }
-    return NULL;
+
+    Command *command = malloc(sizeof(Command));
+    command->commandString = shellState->str;
+    return command;
 }
