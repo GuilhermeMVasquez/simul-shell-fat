@@ -23,7 +23,7 @@ void printManLine(char *commandName, char *arg1, char *arg2, char *whatDoes, cha
 
     if (arg2 != NULL) {
         colorHighIntensityMagenta();
-        printf(" %s", arg1);
+        printf(" %s", arg2);
     }
 
     colorHighIntensityBlue();
@@ -34,7 +34,7 @@ void printManLine(char *commandName, char *arg1, char *arg2, char *whatDoes, cha
     colorItalicBrightWhite();
     printf("   Example: ");
     resetColor();
-    printf("%s\n\n", example);
+    printf("%s\n", example);
     resetColor();
 }
 
@@ -46,9 +46,15 @@ void printMan()
     printManLine("load", NULL, NULL, "Uses the FAT that is on Disk.", "load");
     printManLine("ls", "[/path/directory]", NULL, "List all the directories in the given path.", "ls /users/sergio");
     printManLine("mkdir", "[/path/directory]", NULL, "Creates an empty directory in the given path.", "mkdir Desktop/PUCRS/5SEM");
-    printManLine("create", "[/path/directory]", NULL, "Creates an empty file in the given path.", "create Desktop/PUCRS/5SEM/main.c");
-    printManLine("unlink", "[/path/directory]", NULL, "Deletes a file or an empty directory with the given path.", "unlink Desktop/PUCRS/5SEM/main.c");
-    printManLine("write", "\"string\"[rep]", "[/path/directory]", "Writes data into a file \e[3mrep\e[0m times. (overwriting data, flushing file initially)", "write \"abc\"[5] Desktop/PUCRS/5SEM/main.c");
+    printManLine("create", "[/path/file]", NULL, "Creates an empty file in the given path.", "create Desktop/PUCRS/5SEM/main.c");
+    printManLine("unlink", "[/path/file]", NULL, "Deletes a file or an empty directory with the given path.", "unlink Desktop/PUCRS/5SEM/main.c");
+    printManLine("write", "\"string\"[rep]", "[/path/file]", "Writes data into a file \e[3mrep\e[0m times. (overwriting data, flushing file initially)", "write \"abc\"[5] Desktop/PUCRS/5SEM/main.c");
+    printManLine("append", "\"string\"[rep]", "[/path/file]", "Appends data into a file \e[3mrep\e[0m times.", "append \"abc\"[5] Desktop/PUCRS/5SEM/main.c");
+    printManLine("read", "[/path/file]", NULL, "Reads the content of a file.", "read Desktop/PUCRS/5SEM/main.c");
+
+    colorWhite();
+    printf("\nExtra Commands:\n");
+    printManLine("cd", "[/path/directory]", NULL, "Enters the directory in the given path. When inside directories, all paths will be \n   built on top of the path of the directory you are inside. For creating a path from the root,\n   start it with \"/\". If no path is specified to cd, it goes back to the root directory.", "cd Desktop/PUCRS/5SEM");
 }
 
 void printUserAndMachine()
