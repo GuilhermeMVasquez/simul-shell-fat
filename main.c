@@ -160,6 +160,9 @@ void executeCommand(Command *command, SystemState *sysState)
     {
         initialize_file_system();
         sysState->hasFAT = 1;
+        FilePath *rootPath = initFilePath("");
+        free(sysState->currentPath);
+        sysState->currentPath = rootPath;
         return;
     }
     else if (strcmp(tokens.tokens[0], "load") == 0)
