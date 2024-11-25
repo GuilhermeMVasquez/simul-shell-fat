@@ -101,6 +101,30 @@ void executeCommand(Command *command, SystemState *sysState)
         return;
     }
 
+    if (strcmp(tokens.tokens[0], "init") == 0)
+    {
+        initialize_file_system();
+        sysState->hasFAT = 1;
+        return;
+    }
+    else if (strcmp(tokens.tokens[0], "load") == 0)
+    {
+        load_fat_from_disk();
+        sysState->hasFAT = 1;
+        return;
+    }
+    else if (strcmp(tokens.tokens[0], "exit") == 0)
+    {
+        sysState->hasEnded = 1;
+        printf("Exiting!\n");
+        return;
+    }
+    else if (sysState->hasFAT == 0)
+    {
+        printf("Please, first initialize or load a FAT using either \"init\" or \"load\"\n");
+        return;
+    }
+
     printf("First token: '%s'\n", tokens.tokens[0]); // Add quotes to see trailing spaces
     printf("Amount: %i\n", tokens.length);
 
@@ -133,12 +157,6 @@ void executeCommand(Command *command, SystemState *sysState)
         if (tokens.length > 1)
             free(mkdirPath);
     }
-    else if (strcmp(tokens.tokens[0], "exit") == 0)
-    {
-        sysState->hasEnded = 1;
-        printf("Exiting!\n");
-        return;
-    }
     else if (strcmp(tokens.tokens[0], "create") == 0)
     {
         if (tokens.length <= 1) {
@@ -153,7 +171,7 @@ void executeCommand(Command *command, SystemState *sysState)
 
         if (tokens.length > 1)
             free(createPath);
-    }
+    } 
     else /* default: */
     {
         printf("Command not recognized: '%s'\n", tokens.tokens[0]);
@@ -165,27 +183,11 @@ void executeCommand(Command *command, SystemState *sysState)
 }
 
 int main() {
-
-    initialize_file_system();
-
-    FilePath *rootPath = initFilePath("");
-    create_directory(rootPath, "home");
-
-    FilePath *homePath = initFilePath("home");
-    create_directory(homePath, "documents");
-
-    const char *filename = "exampleNew.txt";  // Nome do arquivo a ser criado
-    uint8_t data[] = "This is the content of the file!";
-    uint32_t size = sizeof(data) - 1;  // Tamanho dos dados
-
-    // Cria o arquivo no diretório especificado
-    int result = create_file(homePath, filename, data, size);
-
-
     SystemState *state = malloc(sizeof(SystemState));
     FilePath *startingPath = initFilePath("");
     state->currentPath = startingPath;
     state->hasEnded = 0;
+    state->hasFAT = 0;
 
     while ( !(state->hasEnded) )
     {
