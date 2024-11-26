@@ -18,9 +18,6 @@ void initialize_fat() {
     for (int i = ROOT_BLOCK + 1; i < NUM_BLOCKS; i++) {
         fat[i] = 0x0000;
     }
-    // for (int i = 0; i < NUM_BLOCKS; i++) {
-    //     printf("fat[%d] = 0x%04X\n", i, fat[i]);
-    // }
 }
 
 /* reads a directory entry from a directory */
@@ -149,6 +146,20 @@ Dir_Entry find_directory(FilePath *filepath) {
     return entry;
 }
 
+int check_duplicate_name(uint32_t parent_block, const char *name) {
+    for (int i = 0; i < DIR_ENTRIES; i++) {
+        Dir_Entry temp_entry;
+        read_dir_entry(parent_block, i, &temp_entry);
+
+        // Check if the entry matches the name and is not empty
+        if (temp_entry.attributes != 0x00 && strncmp((char *)temp_entry.filename, name, 25) == 0) {
+            printf("Error: A file or directory with the name '%s' already exists.\n", name);
+            return -1;
+        }
+    }
+    return 0;  // No duplicate found
+}
+
  /* Create regular file */
 int create_file( FilePath *filepath, const char *name, const uint8_t *data, uint32_t size ) {
     uint32_t parent_block;
@@ -167,6 +178,8 @@ int create_file( FilePath *filepath, const char *name, const uint8_t *data, uint
 
         parent_block = parent_dir.first_block;
     }
+
+    if( check_duplicate_name(parent_block, name) == -1 ) {return -1;}
 
     //allocating the first block 
     int first_block = allocate_block();
@@ -267,26 +280,19 @@ int create_directory( FilePath *filepath, const char *dirname ) {
     uint32_t parent_block = ROOT_BLOCK;  // Starts in the root directory
     Dir_Entry entry;
 
-    //Traverse the directories in the path
-    for ( int i = 0; i < filepath->pathSize; i++ ) {
-        int found = 0;
-
-    // Cycle through the current directory entries to find the next level of the path
-        for ( int j = 0; j < DIR_ENTRIES; j++ ) {
-            read_dir_entry( parent_block, j, &entry );
-
-            if ( entry.attributes == 0x02 && strncmp(( char * )entry.filename, filepath->pathTokens[ i ], 25) == 0 ) {
-                // Diretório encontrado
-                parent_block = entry.first_block;  // Avança para o próximo bloco
-                found = 1;
-                break;
-            }
-        }
-
-        if ( !found ) {
+    // Handle root directory case or find the parent directory
+    if (filepath->pathSize == 0) {
+        parent_block = ROOT_BLOCK;
+    } else {
+        struct dir_entry_s target_dir = find_directory(filepath);
+        if (target_dir.attributes == 0x00 || target_dir.attributes != 0x02) {
+            printf("Error: Directory not found or invalid.\n");
             return -1;
         }
+        parent_block = target_dir.first_block;
     }
+
+    if( check_duplicate_name(parent_block, dirname) == -1 ) {return -1;}
 
     //Create the final directory in the parent directory
     int new_dir_block = allocate_block();
