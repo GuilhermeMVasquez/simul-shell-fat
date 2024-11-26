@@ -96,10 +96,14 @@ Command* shellCycle(SystemState* systemState)
     char ch = 'a';
     char *str = malloc(1);
     int length = 0;
+
+    char *gotStr;
+    char *copyString;
     
     ShellState* shellState = malloc(sizeof(ShellState));
     shellState->cursorPosition = 0;
     shellState->str = str;
+    shellState->reuseCommandsPointer = -1;
 
     printLineShell(systemState, shellState);
 
@@ -123,9 +127,59 @@ Command* shellCycle(SystemState* systemState)
                 break;
             
             case TOP:
+                if (systemState->stackOfUsedCommands->size == 0) {
+                    break;
+                } else if (shellState->reuseCommandsPointer == 0) {
+                    shellState->reuseCommandsPointer = -1;
+                    char *emptyStr = malloc(sizeof(char *));
+                    emptyStr[0] = '\0';
+                    shellState->str = emptyStr;
+                    length = 0;
+                    shellState->cursorPosition = length;
+                    break;
+                } else if (shellState->reuseCommandsPointer == -1) {
+                    shellState->reuseCommandsPointer = systemState->stackOfUsedCommands->size-1;
+                } else if (shellState->reuseCommandsPointer > 0) {
+                    shellState->reuseCommandsPointer--;
+                }
+
+                gotStr = get_at(systemState->stackOfUsedCommands, shellState->reuseCommandsPointer);
+
+                copyString = malloc(sizeof(char *) * (strlen(gotStr) + 1));
+                strcpy(copyString, gotStr);
+                if (gotStr == NULL)
+                    break;
+                shellState->str = gotStr;
+                length = strlen(shellState->str);
+                shellState->cursorPosition = length;
+                
+                break;
             case BOTTOM:
-                continue;
-            
+                if (systemState->stackOfUsedCommands->size == 0 || shellState->reuseCommandsPointer == -1) {
+                    break;
+                } else if (shellState->reuseCommandsPointer == systemState->stackOfUsedCommands->size-1) {
+                    shellState->reuseCommandsPointer = -1;
+                    char *emptyStr = malloc(sizeof(char *));
+                    emptyStr[0] = '\0';
+                    shellState->str = emptyStr;
+                    length = 0;
+                    shellState->cursorPosition = length;
+                    break;
+                } else if (shellState->reuseCommandsPointer < systemState->stackOfUsedCommands->size-1) {
+                    shellState->reuseCommandsPointer++;
+                }
+
+                gotStr = get_at(systemState->stackOfUsedCommands, shellState->reuseCommandsPointer);
+
+                copyString = malloc(sizeof(char *) * (strlen(gotStr) + 1));
+                strcpy(copyString, gotStr);
+                if (gotStr == NULL)
+                    break;
+                shellState->str = gotStr;
+                length = strlen(shellState->str);
+                shellState->cursorPosition = length;
+                
+                break;
             case TAB:
                 tabFunction(systemState, shellState, &length);
                 break;
@@ -141,5 +195,6 @@ Command* shellCycle(SystemState* systemState)
 
     Command *command = malloc(sizeof(Command));
     command->commandString = shellState->str;
+    command->commandString[strlen(command->commandString)-1] = '\0';
     return command;
 }

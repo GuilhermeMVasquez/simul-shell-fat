@@ -4,6 +4,7 @@
 
 typedef struct ShellState {
     int cursorPosition;
+    int reuseCommandsPointer;
     char *str;
 } ShellState;
 
