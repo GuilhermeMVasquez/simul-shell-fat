@@ -19,9 +19,6 @@ void initialize_fat() {
     for (int i = ROOT_BLOCK + 1; i < NUM_BLOCKS; i++) {
         fat[i] = 0x0000;
     }
-    // for (int i = 0; i < NUM_BLOCKS; i++) {
-    //     printf("fat[%d] = 0x%04X\n", i, fat[i]);
-    // }
 }
 
 /* reads a directory entry from a directory */
@@ -150,6 +147,20 @@ Dir_Entry find_directory(FilePath *filepath) {
     return entry;
 }
 
+int check_duplicate_name(uint32_t parent_block, const char *name) {
+    for (int i = 0; i < DIR_ENTRIES; i++) {
+        Dir_Entry temp_entry;
+        read_dir_entry(parent_block, i, &temp_entry);
+
+        // Check if the entry matches the name and is not empty
+        if (temp_entry.attributes != 0x00 && strncmp((char *)temp_entry.filename, name, 25) == 0) {
+            printf("Error: A file or directory with the name '%s' already exists.\n", name);
+            return -1;
+        }
+    }
+    return 0;  // No duplicate found
+}
+
  /* Create regular file */
 int create_file( FilePath *filepath, const char *name, const uint8_t *data, uint32_t size ) {
     uint32_t parent_block;
@@ -168,6 +179,8 @@ int create_file( FilePath *filepath, const char *name, const uint8_t *data, uint
 
         parent_block = parent_dir.first_block;
     }
+
+    if( check_duplicate_name(parent_block, name) == -1 ) {return -1;}
 
     //allocating the first block 
     int first_block = allocate_block();
@@ -267,26 +280,19 @@ int create_directory( FilePath *filepath, const char *dirname ) {
     uint32_t parent_block = ROOT_BLOCK;  // Starts in the root directory
     Dir_Entry entry;
 
-    //Traverse the directories in the path
-    for ( int i = 0; i < filepath->pathSize; i++ ) {
-        int found = 0;
-
-    // Cycle through the current directory entries to find the next level of the path
-        for ( int j = 0; j < DIR_ENTRIES; j++ ) {
-            read_dir_entry( parent_block, j, &entry );
-
-            if ( entry.attributes == 0x02 && strncmp(( char * )entry.filename, filepath->pathTokens[ i ], 25) == 0 ) {
-                // Diretório encontrado
-                parent_block = entry.first_block;  // Avança para o próximo bloco
-                found = 1;
-                break;
-            }
-        }
-
-        if ( !found ) {
+    // Handle root directory case or find the parent directory
+    if (filepath->pathSize == 0) {
+        parent_block = ROOT_BLOCK;
+    } else {
+        struct dir_entry_s target_dir = find_directory(filepath);
+        if (target_dir.attributes == 0x00 || target_dir.attributes != 0x02) {
+            printf("Error: Directory not found or invalid.\n");
             return -1;
         }
+        parent_block = target_dir.first_block;
     }
+
+    if( check_duplicate_name(parent_block, dirname) == -1 ) {return -1;}
 
     //Create the final directory in the parent directory
     int new_dir_block = allocate_block();
@@ -530,23 +536,19 @@ int append_file( FilePath *filepath, const char *filename, const uint8_t *data, 
 }
 
 int overwrite_file( FilePath *filepath, const char *filename, const uint8_t *data, int repetitions ) {
-    for( int i = 0; i < repetitions; i++ ) {
-    if (data == NULL) {
-        printf( "Error: No data provided for overwriting.\n" );
-        return -1;
-    }
+    if ( data == NULL ) { printf( "Error: No data provided for overwriting.\n" ); return -1; }
 
-    uint32_t new_size = strlen( ( char * ) data );
+    if ( repetitions <= 0 ) { printf("Error: Repetitions must be greater than 0.\n"); return -1; }
 
     uint32_t parent_block;
     struct dir_entry_s file_entry;
 
     // Handle root directory case or find the parent directory
-    if ( filepath->pathSize == 0 ) { parent_block = ROOT_BLOCK; } 
-    else {
-        struct dir_entry_s target_dir = find_directory(filepath);
+    if ( filepath->pathSize == 0 ) { parent_block = ROOT_BLOCK;  // File is in the root directory
+    } else {
+        struct dir_entry_s target_dir = find_directory( filepath );
         if ( target_dir.attributes == 0x00 || target_dir.attributes != 0x02 ) {
-            printf("Error: Directory not found or invalid.\n");
+            printf( "Error: Directory not found or invalid.\n" );
             return -1;
         }
         parent_block = target_dir.first_block;
@@ -554,88 +556,57 @@ int overwrite_file( FilePath *filepath, const char *filename, const uint8_t *dat
 
     // Locate the file in the directory
     int entry_index = find_file_in_directory( parent_block, filename, &file_entry );
+    if ( entry_index == -1 ) { printf( "Error: File '%s' not found.\n", filename ); return -1; }
 
-    if ( entry_index == -1 ) { printf("Error: File '%s' not found.\n", filename); return -1; }
-
-     // Check if it's a file
+    // Check if it's a file 
     if ( file_entry.attributes != 0x01 ) { printf( "Error: '%s' is not a file.\n", filename ); return -1; }
 
-    // Prepare to overwrite the file
+    // Start cleaning the file blocks
     uint32_t current_block = file_entry.first_block;
-    uint32_t last_used_block = current_block;
+    uint32_t next_block = fat[current_block];
 
-    uint32_t remaining_bytes = new_size;
-    uint32_t data_offset = 0;
-
-    // Open the filesystem for writing
-    FILE *fs = fopen( "filesystem.dat", "r+b" );
-    if ( fs == NULL ) { printf( "Error opening filesystem file.\n" ); return -1; }
-
-    // Overwrite the existing blocks with the new data
-    while ( remaining_bytes > 0 ) {
-        uint32_t bytes_to_write = (remaining_bytes > BLOCK_SIZE) ? BLOCK_SIZE : remaining_bytes;
-
-        // Write the new data to the block
-        fseek(fs, current_block * BLOCK_SIZE, SEEK_SET);
-        fwrite( &data[data_offset], 1, bytes_to_write, fs );
-
-        data_offset += bytes_to_write;
-        remaining_bytes -= bytes_to_write;
-
-        // If more data needs to be written and no more blocks are available, allocate a new block
-        if ( remaining_bytes > 0 ) {
-            if ( fat[current_block] == 0x7FFF ) {
-                // Allocate a new block
-                int new_block = allocate_block();
-                if (new_block == -1) {
-                    printf("Error: No space left to overwrite the file.\n");
-                    fclose(fs);
-                    return -1;
-                }
-
-                fat[current_block] = new_block;
-            }
-
-            last_used_block = current_block;
-            current_block = fat[ current_block ];
-        }
-    }
-
-    // Clear the remaining unused blocks from the original file
-    uint32_t next_block = fat[ current_block ];
-    fat[current_block] = 0x7FFF;  // Mark the current block as the last block
-
+    // Retain the first block and clear the rest
     while ( next_block != 0x7FFF ) {
         uint32_t free_block = next_block;
         next_block = fat[ next_block ];
 
         // Clear the block's content
         uint8_t zero_buffer[ BLOCK_SIZE ] = { 0 };
+        FILE *fs = fopen( "filesystem.dat", "r+b" );
+        if (fs == NULL) { printf("Error: Unable to open filesystem for cleaning.\n"); return -1; }
+
         fseek( fs, free_block * BLOCK_SIZE, SEEK_SET );
         fwrite( zero_buffer, 1, BLOCK_SIZE, fs );
+        fclose( fs );
 
-        // Mark the block as free in FAT
+        // Mark the block as free in the FAT
         fat[ free_block ] = 0x0000;
     }
 
-    // Clear any unused space in the last block
-    uint32_t unused_space = BLOCK_SIZE - ( new_size % BLOCK_SIZE );
-    if ( unused_space > 0 && unused_space < BLOCK_SIZE ) {
-        uint8_t zero_buffer[BLOCK_SIZE] = {0};
-        fseek(fs, current_block * BLOCK_SIZE + (new_size % BLOCK_SIZE), SEEK_SET);
-        fwrite(zero_buffer, 1, unused_space, fs);
-    }
-
+    // Mark the first block as the last block
+    fat[ current_block ] = 0x7FFF;
     save_fat_to_disk();
 
-    // Update the file's metadata
-    file_entry.size = new_size;
+    // Clear the content of the first block
+    uint8_t zero_buffer[ BLOCK_SIZE ] = {0};
+    FILE *fs = fopen( "filesystem.dat", "r+b" );
+
+    if (fs == NULL) { printf( "Error: Unable to open filesystem for cleaning.\n" ); return -1; }
+
+    fseek( fs, current_block * BLOCK_SIZE, SEEK_SET );
+    fwrite( zero_buffer, 1, BLOCK_SIZE, fs );
+    fclose( fs );
+
+    // Reset the file's size in its directory entry
+    file_entry.size = 0;
     write_dir_entry( parent_block, entry_index, &file_entry );
 
-    fclose(fs);
-    }
+    // append the data in file 
+    append_file(filepath, filename, data, repetitions);
+
     return 0;
 }
+
 
 int read_file(FilePath *filepath, const char *filename) {
     struct dir_entry_s file_entry;
@@ -810,6 +781,72 @@ char *getPathAutocomplete(FilePath *currentPath, char *prefix)
 
     return NULL;
 }
+
+
+int unlink( FilePath *filepath, const char *name ) {
+    uint32_t parent_block;
+    struct dir_entry_s target_entry;
+
+    // Handle root directory case or find the parent directory
+    if ( filepath->pathSize == 0 ) {
+        parent_block = ROOT_BLOCK;  // File or directory is in the root
+    } else {
+        struct dir_entry_s parent_dir = find_directory(filepath);
+        if (parent_dir.attributes == 0x00 || parent_dir.attributes != 0x02) {
+            printf("Error: Parent directory not found or invalid.\n");
+            return -1;
+        }
+        parent_block = parent_dir.first_block;
+    }
+
+    // Locate the target file/directory in the parent directory
+    int entry_index = find_file_in_directory(parent_block, name, &target_entry);
+    if ( entry_index == -1 ) { printf( "Error: File or directory '%s' not found.\n", name );return -1;
+    }
+
+    // If it's a directory, recursively delete its contents
+    if ( target_entry.attributes == 0x02 ) {  // Directory
+        uint32_t dir_block = target_entry.first_block;
+
+        for ( int i = 0; i < DIR_ENTRIES; i++ ) {
+            struct dir_entry_s sub_entry;
+            read_dir_entry(dir_block, i, &sub_entry);
+
+            // Skip empty entries
+            if ( sub_entry.attributes == 0x00 ) { continue; }
+
+            // Build a new path for recursion
+            FilePath sub_filepath;
+            memcpy(&sub_filepath, filepath, sizeof(FilePath));
+            sub_filepath.pathTokens[sub_filepath.pathSize] = name;
+            sub_filepath.pathSize++;
+
+            unlink( &sub_filepath, (const char *)sub_entry.filename );  // Recursive call
+        }
+
+        // Clear the directory block
+        uint8_t zero_buffer[ BLOCK_SIZE ] = { 0 };
+        write_block( "filesystem.dat", dir_block, zero_buffer );
+
+        // Mark the directory block as free in the FAT
+        free_blocks( dir_block );
+    } else if ( target_entry.attributes == 0x01 ) {  // File
+        // Free all blocks associated with the file
+        free_blocks(target_entry.first_block);
+    } else {
+        printf("Error: Unknown entry type for '%s'.\n", name);
+        return -1;
+    }
+
+    // Remove the entry from the parent directory
+    struct dir_entry_s empty_entry = { 0 };
+    write_dir_entry( parent_block, entry_index, &empty_entry );
+
+    printf( "Successfully deleted '%s'.\n", name );
+    return 0;
+}
+
+
 
 
 
