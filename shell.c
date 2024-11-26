@@ -34,12 +34,25 @@ void saveCursorPosition()
     printf("\033[s");
 }
 
+void tabFunction(SystemState *systemState, ShellState *shellState, int *length)
+{
+    char *autocomplete = getCommandsAutocomplete(shellState->str);
+
+    if (autocomplete == NULL)
+        return;
+
+    free(shellState->str);
+    shellState->str = malloc(strlen(autocomplete) + 1);
+    strcpy(shellState->str, autocomplete);
+    (*length) = strlen(shellState->str);
+    shellState->cursorPosition = (*length);
+}
+
 Command* shellCycle(SystemState* systemState)
 {
     char ch = 'a';
     char *str = malloc(1);
     int length = 0;
-    char *autocomplete;
     
     ShellState* shellState = malloc(sizeof(ShellState));
     shellState->cursorPosition = 0;
@@ -71,17 +84,7 @@ Command* shellCycle(SystemState* systemState)
                 continue;
             
             case TAB:
-                autocomplete = getCommandsAutocomplete(shellState->str);
-
-                if (autocomplete == NULL)
-                    break;
-
-                free(shellState->str);
-                shellState->str = malloc(strlen(autocomplete) + 1);
-                strcpy(shellState->str, autocomplete);
-                length = strlen(shellState->str);
-                shellState->cursorPosition = length;
-
+                tabFunction(systemState, shellState, &length);
                 break;
             default:
                 shellState->str = realloc(shellState->str, length + 2);

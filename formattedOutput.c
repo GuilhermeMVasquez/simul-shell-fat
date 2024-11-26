@@ -192,7 +192,7 @@ void printLineShell(SystemState* sysState, ShellState* shellState)
 
         if (currentTokenIndex == 0) {
             autocomplete = getCommandsAutocomplete(token);
-        } else {
+        } else if (currentTokenIndex == totalTokens-1) { // último token
             autocomplete = getPathAutocomplete(sysState->currentPath, token);
         }
 
