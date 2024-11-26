@@ -508,6 +508,113 @@ uint32_t free_space_in_last_block = (used_space_in_last_block == 0 && file_entry
     return 0;
 }
 
+int overwrite_file( FilePath *filepath, const char *filename, const uint8_t *data ) {
+    if (data == NULL) {
+        printf("Error: No data provided for overwriting.\n");
+        return -1;
+    }
+
+    uint32_t new_size = strlen( ( char * ) data );
+
+    uint32_t parent_block;
+    struct dir_entry_s file_entry;
+
+    // Handle root directory case or find the parent directory
+    if ( filepath->pathSize == 0 ) { parent_block = ROOT_BLOCK; } 
+    else {
+        struct dir_entry_s target_dir = find_directory(filepath);
+        if ( target_dir.attributes == 0x00 || target_dir.attributes != 0x02 ) {
+            printf("Error: Directory not found or invalid.\n");
+            return -1;
+        }
+        parent_block = target_dir.first_block;
+    }
+
+    // Locate the file in the directory
+    int entry_index = find_file_in_directory( parent_block, filename, &file_entry );
+
+    if ( entry_index == -1 ) { printf("Error: File '%s' not found.\n", filename); return -1; }
+
+     // Check if it's a file
+    if ( file_entry.attributes != 0x01 ) { printf( "Error: '%s' is not a file.\n", filename ); return -1; }
+
+    // Prepare to overwrite the file
+    uint32_t current_block = file_entry.first_block;
+    uint32_t last_used_block = current_block;
+
+    uint32_t remaining_bytes = new_size;
+    uint32_t data_offset = 0;
+
+    // Open the filesystem for writing
+    FILE *fs = fopen( "filesystem.dat", "r+b" );
+    if ( fs == NULL ) { printf( "Error opening filesystem file.\n" ); return -1; }
+
+    // Overwrite the existing blocks with the new data
+    while ( remaining_bytes > 0 ) {
+        uint32_t bytes_to_write = (remaining_bytes > BLOCK_SIZE) ? BLOCK_SIZE : remaining_bytes;
+
+        // Write the new data to the block
+        fseek(fs, current_block * BLOCK_SIZE, SEEK_SET);
+        fwrite( &data[data_offset], 1, bytes_to_write, fs );
+
+        data_offset += bytes_to_write;
+        remaining_bytes -= bytes_to_write;
+
+        // If more data needs to be written and no more blocks are available, allocate a new block
+        if ( remaining_bytes > 0 ) {
+            if ( fat[current_block] == 0x7FFF ) {
+                // Allocate a new block
+                int new_block = allocate_block();
+                if (new_block == -1) {
+                    printf("Error: No space left to overwrite the file.\n");
+                    fclose(fs);
+                    return -1;
+                }
+
+                fat[current_block] = new_block;
+            }
+
+            last_used_block = current_block;
+            current_block = fat[ current_block ];
+        }
+    }
+
+    // Clear the remaining unused blocks from the original file
+    uint32_t next_block = fat[ current_block ];
+    fat[current_block] = 0x7FFF;  // Mark the current block as the last block
+
+    while ( next_block != 0x7FFF ) {
+        uint32_t free_block = next_block;
+        next_block = fat[ next_block ];
+
+        // Clear the block's content
+        uint8_t zero_buffer[ BLOCK_SIZE ] = { 0 };
+        fseek( fs, free_block * BLOCK_SIZE, SEEK_SET );
+        fwrite( zero_buffer, 1, BLOCK_SIZE, fs );
+
+        // Mark the block as free in FAT
+        fat[ free_block ] = 0x0000;
+    }
+
+    // Clear any unused space in the last block
+    uint32_t unused_space = BLOCK_SIZE - ( new_size % BLOCK_SIZE );
+    if ( unused_space > 0 && unused_space < BLOCK_SIZE ) {
+        uint8_t zero_buffer[BLOCK_SIZE] = {0};
+        fseek(fs, current_block * BLOCK_SIZE + (new_size % BLOCK_SIZE), SEEK_SET);
+        fwrite(zero_buffer, 1, unused_space, fs);
+    }
+
+    save_fat_to_disk();
+
+    // Update the file's metadata
+    file_entry.size = new_size;
+    write_dir_entry( parent_block, entry_index, &file_entry );
+
+    fclose(fs);
+    printf( "File '%s' successfully overwritten with %d bytes, and unused blocks cleared.\n", filename, new_size );
+    return 0;
+}
+
 
 
 
