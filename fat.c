@@ -663,12 +663,12 @@ int read_file(FilePath *filepath, const char *filename) {
 }
 
 
-int unlink(FilePath *filepath, const char *name) {
+int unlink( FilePath *filepath, const char *name ) {
     uint32_t parent_block;
     struct dir_entry_s target_entry;
 
     // Handle root directory case or find the parent directory
-    if (filepath->pathSize == 0) {
+    if ( filepath->pathSize == 0 ) {
         parent_block = ROOT_BLOCK;  // File or directory is in the root
     } else {
         struct dir_entry_s parent_dir = find_directory(filepath);
@@ -681,63 +681,50 @@ int unlink(FilePath *filepath, const char *name) {
 
     // Locate the target file/directory in the parent directory
     int entry_index = find_file_in_directory(parent_block, name, &target_entry);
-    if (entry_index == -1) {
-        printf("Error: File or directory '%s' not found.\n", name);
-        return -1;
+    if ( entry_index == -1 ) { printf( "Error: File or directory '%s' not found.\n", name );return -1;
     }
 
-    // Handle directory recursively
-    if (target_entry.attributes == 0x02) {  // Directory
+    // If it's a directory, recursively delete its contents
+    if ( target_entry.attributes == 0x02 ) {  // Directory
         uint32_t dir_block = target_entry.first_block;
 
-        for (int i = 0; i < DIR_ENTRIES; i++) {
+        for ( int i = 0; i < DIR_ENTRIES; i++ ) {
             struct dir_entry_s sub_entry;
             read_dir_entry(dir_block, i, &sub_entry);
 
-            if (sub_entry.attributes != 0x00) {  // Skip empty entries
-                // Update filepath for recursion
-                FilePath sub_filepath;
-                memcpy(&sub_filepath, filepath, sizeof(FilePath));
-                sub_filepath.pathTokens[sub_filepath.pathSize] = strdup((char *)sub_entry.filename);
-                sub_filepath.pathSize++;
+            // Skip empty entries
+            if ( sub_entry.attributes == 0x00 ) { continue; }
 
-                // Recursive call to delete sub-entry
-                unlink(&sub_filepath, (char *)sub_entry.filename);
+            // Build a new path for recursion
+            FilePath sub_filepath;
+            memcpy(&sub_filepath, filepath, sizeof(FilePath));
+            sub_filepath.pathTokens[sub_filepath.pathSize] = name;
+            sub_filepath.pathSize++;
 
-                // Free memory allocated for pathTokens
-                free(sub_filepath.pathTokens[sub_filepath.pathSize - 1]);
-            }
+            unlink( &sub_filepath, (const char *)sub_entry.filename );  // Recursive call
         }
 
-        // Clear the directory block and free in FAT
-        uint8_t zero_buffer[BLOCK_SIZE] = {0};
-        write_block("filesystem.dat", dir_block, zero_buffer);
-        free_blocks(dir_block);
+        // Clear the directory block
+        uint8_t zero_buffer[ BLOCK_SIZE ] = { 0 };
+        write_block( "filesystem.dat", dir_block, zero_buffer );
 
-    } else if (target_entry.attributes == 0x01) {  // File
+        // Mark the directory block as free in the FAT
+        free_blocks( dir_block );
+    } else if ( target_entry.attributes == 0x01 ) {  // File
         // Free all blocks associated with the file
-        uint32_t file_block = target_entry.first_block;
-        free_blocks(file_block);
-
-        // Clear file content in the filesystem
-        uint8_t zero_buffer[BLOCK_SIZE] = {0};
-        while (file_block != 0x7FFF) {
-            write_block("filesystem.dat", file_block, zero_buffer);
-            file_block = fat[file_block];
-        }
+        free_blocks(target_entry.first_block);
     } else {
         printf("Error: Unknown entry type for '%s'.\n", name);
         return -1;
     }
 
     // Remove the entry from the parent directory
-    struct dir_entry_s empty_entry = {0};
-    write_dir_entry(parent_block, entry_index, &empty_entry);
+    struct dir_entry_s empty_entry = { 0 };
+    write_dir_entry( parent_block, entry_index, &empty_entry );
 
-    printf("Successfully deleted '%s'.\n", name);
+    printf( "Successfully deleted '%s'.\n", name );
     return 0;
 }
-
 
 
 
