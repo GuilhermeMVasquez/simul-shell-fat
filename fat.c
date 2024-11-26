@@ -532,7 +532,7 @@ int append_file( FilePath *filepath, const char *filename, const uint8_t *data )
 
 int overwrite_file( FilePath *filepath, const char *filename, const uint8_t *data, int repetitions ) {
     if (data == NULL) {
-        printf("Error: No data provided for overwriting.\n");
+        printf( "Error: No data provided for overwriting.\n" );
         return -1;
     }
 
@@ -634,6 +634,58 @@ int overwrite_file( FilePath *filepath, const char *filename, const uint8_t *dat
 
     fclose(fs);
     printf( "File '%s' successfully overwritten with %d bytes, and unused blocks cleared.\n", filename, new_size );
+    return 0;
+}
+
+int read_file(FilePath *filepath, const char *filename) {
+    struct dir_entry_s file_entry;
+
+    //Locate the parent directory using the filepath
+    uint32_t parent_block = ROOT_BLOCK;  // Start at the root block
+    if ( filepath->pathSize > 0 ) {
+        struct dir_entry_s parent_dir = find_directory( filepath );
+        if (parent_dir.attributes == 0x00 || parent_dir.attributes != 0x02) {
+            printf("Error: Directory path not found or invalid.\n");
+            return -1;
+        }
+        parent_block = parent_dir.first_block;
+    }
+
+    // Locate the file within the parent directory
+    int entry_index = find_file_in_directory( parent_block, filename, &file_entry );
+    if ( entry_index == -1 ) {
+        printf( "Error: File '%s' not found.\n", filename );
+        return -1;
+    }
+
+    if ( file_entry.attributes != 0x01 ) { printf( "Error: '%s' is not a file.\n", filename ); return -1; }
+
+    //Read the file content block by block
+    uint32_t current_block = file_entry.first_block;
+    uint32_t remaining_size = file_entry.size;
+
+    printf( "Reading file '%s' (%d bytes):\n", filename, file_entry.size );
+
+    while ( current_block != 0x7FFF && remaining_size > 0 ) {
+        uint8_t buffer[BLOCK_SIZE];
+        read_block( "filesystem.dat", current_block, buffer );
+
+        // Determine how many bytes to read from this block
+        uint32_t bytes_to_read = ( remaining_size > BLOCK_SIZE ) ? BLOCK_SIZE : remaining_size;
+
+        // Print the content to the console ( assuming it's text )
+        fwrite( buffer, 1, bytes_to_read, stdout );
+
+        remaining_size -= bytes_to_read;
+        current_block = fat[ current_block ];  // Move to the next block
+    }
+
+    if ( remaining_size > 0 ) {
+        printf( "\nError: File '%s' is incomplete or corrupted.\n", filename );
+        return -1;
+    }
+
+    printf( "\nFile '%s' read successfully.\n", filename );
     return 0;
 }
 
