@@ -414,7 +414,7 @@ int find_file_in_directory(uint32_t parent_block, const char *filename, struct d
     for (int i = 0; i < DIR_ENTRIES; i++) {
         read_dir_entry(parent_block, i, file_entry);
 
-        if (file_entry->attributes == 0x01 && strncmp((char *)file_entry->filename, filename, 25) == 0) {
+        if (file_entry->attributes != 0x02 && strncmp((char *)file_entry->filename, filename, 25) == 0) {
             // File found, return its index
             return i;
         }
@@ -782,77 +782,45 @@ char *getPathAutocomplete(FilePath *currentPath, char *prefix)
     return NULL;
 }
 
+int is_directory_empty(uint32_t dir_block) {
+    // Itera pelas entradas do diretório e verifica se há algum arquivo ou subdiretório
+    for (int i = 0; i < DIR_ENTRIES; i++) {
+        struct dir_entry_s entry;
+        read_dir_entry(dir_block, i, &entry);
 
-// int unlink( FilePath *filepath, const char *name ) {
-//     uint32_t parent_block;
-//     struct dir_entry_s target_entry;
+        // Se encontrar qualquer entrada não vazia, o diretório não está vazio
+        if (entry.attributes != 0x00) {
+            return 0;  // Diretório não vazio
+        }
+    }
 
-//     // Handle root directory case or find the parent directory
-//     if ( filepath->pathSize == 0 ) {
-//         parent_block = ROOT_BLOCK;  // File or directory is in the root
-//     } else {
-//         struct dir_entry_s parent_dir = find_directory(filepath);
-//         if (parent_dir.attributes == 0x00 || parent_dir.attributes != 0x02) {
-//             printf("Error: Parent directory not found or invalid.\n");
-//             return -1;
-//         }
-//         parent_block = parent_dir.first_block;
-//     }
+    // Se não encontrou nenhuma entrada, o diretório está vazio
+    return 1;  // Diretório vazio
+}
 
-//     // Locate the target file/directory in the parent directory
-//     int entry_index = find_file_in_directory(parent_block, name, &target_entry);
-//     if ( entry_index == -1 ) { printf( "Error: File or directory '%s' not found.\n", name );return -1;
-//     }
+int find_anything_in_directory(uint32_t parent_block, const char *filename, struct dir_entry_s *file_entry) {
+    for (int i = 0; i < DIR_ENTRIES; i++) {
+        read_dir_entry(parent_block, i, file_entry);
 
-//     // If it's a directory, recursively delete its contents
-//     if ( target_entry.attributes == 0x02 ) {  // Directory
-//         uint32_t dir_block = target_entry.first_block;
+        if (file_entry->attributes != 0x00 && strncmp((char *)file_entry->filename, filename, 25) == 0) {
+            // File found, return its index
+            return i;
+        }
+    }
 
-//         for ( int i = 0; i < DIR_ENTRIES; i++ ) {
-//             struct dir_entry_s sub_entry;
-//             read_dir_entry(dir_block, i, &sub_entry);
+    // File not found
+    printf("Error: File '%s' not found.\n", filename);
+    return -1;
+}
 
-//             // Skip empty entries
-//             if ( sub_entry.attributes == 0x00 ) { continue; }
-
-//             // Build a new path for recursion
-//             FilePath sub_filepath;
-//             memcpy(&sub_filepath, filepath, sizeof(FilePath));
-//             sub_filepath.pathTokens[sub_filepath.pathSize] = name;
-//             sub_filepath.pathSize++;
-
-//             unlink( &sub_filepath, (const char *)sub_entry.filename );  // Recursive call
-//         }
-
-//         // Clear the directory block
-//         uint8_t zero_buffer[ BLOCK_SIZE ] = { 0 };
-//         write_block( "filesystem.dat", dir_block, zero_buffer );
-
-//         // Mark the directory block as free in the FAT
-//         free_blocks( dir_block );
-//     } else if ( target_entry.attributes == 0x01 ) {  // File
-//         // Free all blocks associated with the file
-//         free_blocks(target_entry.first_block);
-//     } else {
-//         printf("Error: Unknown entry type for '%s'.\n", name);
-//         return -1;
-//     }
-
-//     // Remove the entry from the parent directory
-//     struct dir_entry_s empty_entry = { 0 };
-//     write_dir_entry( parent_block, entry_index, &empty_entry );
-
-//     printf( "Successfully deleted '%s'.\n", name );
-//     return 0;
-// }
 
 int unlink_file(FilePath *filepath, const char *name) {
     uint32_t parent_block;
     struct dir_entry_s target_entry;
 
-    // Identificar o bloco do diretório pai
+    // Identify the parent directory block
     if (filepath->pathSize == 0) {
-        parent_block = ROOT_BLOCK;  // Diretório raiz
+        parent_block = ROOT_BLOCK; 
     } else {
         struct dir_entry_s parent_dir = find_directory(filepath);  // Começa no root
         if (parent_dir.attributes == 0x00 || parent_dir.attributes != 0x02) {
@@ -863,14 +831,28 @@ int unlink_file(FilePath *filepath, const char *name) {
     }
 
 
-    // Localizar o arquivo ou diretório dentro do diretório pai
-    int entry_index = find_file_in_directory(parent_block, name, &target_entry);
+    // Find the file or directory within the parent directory
+    int entry_index = find_anything_in_directory(parent_block, name, &target_entry);
     if (entry_index == -1) {
         printf("Error: File or directory '%s' not found.\n", name);
         return -1;
     }
 
-    if (target_entry.attributes != 0x00) {  // Caso 2: Deletar um arquivo
+    if( target_entry.attributes == 0x02 ) {
+        if( is_directory_empty( target_entry.first_block ) == 0 ) { printf(" directory is not empty\n ", name); return -1; }
+
+        else { 
+            uint32_t current_block = target_entry.first_block;
+            int next_block = fat[ current_block ];
+
+            uint8_t zero_buffer[BLOCK_SIZE] = { 0 };
+            write_block( "filesystem.dat", current_block, zero_buffer );
+            fat[ current_block ] = 0x0;
+        }
+    }
+
+    // case this is a archive
+    if (target_entry.attributes != 0x02 && target_entry.attributes != 0x00) {  
         uint32_t current_block = target_entry.first_block;
         int next_block = fat[ current_block ];
 
@@ -878,41 +860,22 @@ int unlink_file(FilePath *filepath, const char *name) {
         write_block("filesystem.dat", current_block, zero_buffer);
         fat[ current_block ] = 0x0;
 
-        while (next_block != 0x7FFF) {
- 
+        while (next_block != 0x7FFF) { 
+            current_block = next_block;
+            next_block = fat[ current_block ];
+
+            uint8_t zero_buffer[BLOCK_SIZE] = {0};
+            write_block("filesystem.dat", current_block, zero_buffer);
+            fat[ current_block ] = 0x0;
         }
-        
-
-
-                  
-
-                
-
-
-
-
-
-                // // Percorrer todos os blocos associados ao arquivo e deletá-los
-                // while (current_block != 0x7FFF) {
-                //     uint32_t next_block = fat[current_block];
-                    
-                //     // Limpar os dados do bloco
-                //     uint8_t zero_buffer[BLOCK_SIZE] = {0};
-                //     write_block("filesystem.dat", current_block, zero_buffer);
-                    
-                //     // Liberar a entrada na FAT
-                //     fat[current_block] = 0x0000;
-                    
-                //     // Passar para o próximo bloco
-                //     current_block = next_block;
-                // }
-
-
-                // Limpar a entrada do arquivo na FAT
-                save_fat_to_disk();
-
-            }
         }
+
+        // clean fat entry
+        save_fat_to_disk();
+        struct dir_entry_s empty_entry = {0};
+        write_dir_entry(parent_block, entry_index, &empty_entry);
+
+}
 
 
 
