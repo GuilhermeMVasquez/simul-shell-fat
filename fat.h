@@ -59,4 +59,6 @@ int append_file( FilePath *filepath, const char *filename, const uint8_t *data, 
 
 int overwrite_file( FilePath *filepath, const char *filename, const uint8_t *data, int repetitions );
 
+int read_file( FilePath *filepath, const char *filename );
+
 #endif // FAT_H

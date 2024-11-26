@@ -225,7 +225,7 @@ void executeCommand(Command *command, SystemState *sysState)
     else if (strcmp(tokens.tokens[0], "create") == 0)
     {
         if (tokens.length <= 1) {
-            printf("usage: create [/caminho/arquivo]");
+            printf("usage: create [/path/file]");
             return;
         }
 
@@ -257,6 +257,21 @@ void executeCommand(Command *command, SystemState *sysState)
             printf("error: %s directory not found!", tokens.tokens[1]);
             free(cdPath);
         }
+    }
+    else if (strcmp(tokens.tokens[0], "read") == 0)
+    {
+        if (tokens.length == 1) {
+            printf("usage: read [path/file]");
+            return;
+        }
+
+        FilePath *readPath;
+        readPath = initFilePathFromOtherPath(sysState->currentPath, tokens.tokens[1]);
+        readPath->pathSize--;
+
+        read_file(readPath, readPath->pathTokens[readPath->pathSize]);
+
+        free(readPath);
     }
     else if (strcmp(tokens.tokens[0], "append") == 0)
     {
