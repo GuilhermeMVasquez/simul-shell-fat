@@ -846,6 +846,75 @@ int unlink( FilePath *filepath, const char *name ) {
     return 0;
 }
 
+int unlink(FilePath *filepath, const char *name) {
+    uint32_t parent_block;
+    struct dir_entry_s target_entry;
+
+    // Identificar o bloco do diretório pai
+    if (filepath->pathSize == 0) {
+        parent_block = ROOT_BLOCK;  // Diretório raiz
+    } else {
+        struct dir_entry_s parent_dir = find_directory(filepath);  // Começa no root
+        if (parent_dir.attributes == 0x00 || parent_dir.attributes != 0x02) {
+            printf("Error: Parent directory not found or invalid.\n");
+            return -1;
+        }
+        parent_block = parent_dir.first_block;
+    }
+
+
+    // Localizar o arquivo ou diretório dentro do diretório pai
+    int entry_index = find_file_in_directory(parent_block, name, &target_entry);
+    if (entry_index == -1) {
+        printf("Error: File or directory '%s' not found.\n", name);
+        return -1;
+    }
+
+    if (target_entry.attributes != 0x00) {  // Caso 2: Deletar um arquivo
+        uint32_t current_block = target_entry.first_block;
+        int next_block = fat[ current_block ];
+
+        uint8_t zero_buffer[BLOCK_SIZE] = {0};
+        write_block("filesystem.dat", current_block, zero_buffer);
+        fat[ current_block ] = 0x0;
+
+        while (next_block != 0x7FFF) {
+ 
+        }
+        
+
+
+                  
+
+                
+
+
+
+
+
+                // // Percorrer todos os blocos associados ao arquivo e deletá-los
+                // while (current_block != 0x7FFF) {
+                //     uint32_t next_block = fat[current_block];
+                    
+                //     // Limpar os dados do bloco
+                //     uint8_t zero_buffer[BLOCK_SIZE] = {0};
+                //     write_block("filesystem.dat", current_block, zero_buffer);
+                    
+                //     // Liberar a entrada na FAT
+                //     fat[current_block] = 0x0000;
+                    
+                //     // Passar para o próximo bloco
+                //     current_block = next_block;
+                // }
+
+
+                // Limpar a entrada do arquivo na FAT
+                save_fat_to_disk();
+
+            }
+        }
+
+
 
 
 

@@ -63,4 +63,6 @@ int read_file( FilePath *filepath, const char *filename );
 
 char *getPathAutocomplete(FilePath *currentPath, char *prefix);
 
+int unlink(FilePath *filepath, const char *name);
+
 #endif // FAT_H
