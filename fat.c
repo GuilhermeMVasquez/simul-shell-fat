@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -686,6 +687,129 @@ int read_file(FilePath *filepath, const char *filename) {
     return 0;
 }
 
+char **find_directories_and_files_names(FilePath *path, int *filenameCount)
+{
+    struct dir_entry_s target_dir;
+    uint32_t dir_block;
+
+    // Special case: list the root directory if the path is empty
+    if (path->pathSize <= 0) {
+        dir_block = ROOT_BLOCK;
+    } else {
+        // Find the desired directory using find_directory
+        target_dir = find_directory( path );
+
+        if (target_dir.attributes == 0x00 || target_dir.attributes != 0x02) {
+            printf("Error: Directory not found or invalid.\n");
+            return NULL;
+        }
+
+        // Read the block from the found directory
+        dir_block = target_dir.first_block;
+    }
+
+    int amountOfFiles = 0;
+    for ( int i = 0; i < DIR_ENTRIES; i++ ) {
+        Dir_Entry entry;
+        read_dir_entry(dir_block, i, &entry);
+        if ( entry.attributes != 0x00 )
+            amountOfFiles++;
+    }
+
+    if (amountOfFiles == 0) {
+        return NULL;
+    }
+
+    char **filenames = malloc(sizeof(char*) * amountOfFiles);
+
+    (*filenameCount) = 0;
+
+    for (int i = 0; i < DIR_ENTRIES; i++) {
+        Dir_Entry entry;
+        read_dir_entry(dir_block, i, &entry);
+
+        // Check if the entry is not empty
+        if (entry.attributes != 0x00) {
+            char *filename = malloc(sizeof(entry.filename));
+            strcpy(filename, entry.filename);
+            filenames[(*filenameCount)] = filename;
+            (*filenameCount)++;
+        }
+    }
+
+    return filenames;
+}
+
+char isPrefix(const char *prefix, const char *str) {
+    size_t prefixLen = strlen(prefix);
+    size_t strLen = strlen(str);
+
+    // If the prefix is longer than the string, it cannot be a prefix
+    if (prefixLen > strLen) {
+        return 0;
+    }
+
+    // Compare the prefix with the start of the string
+    return strncmp(prefix, str, prefixLen) == 0;
+}
+
+char *getPathAutocomplete(FilePath *currentPath, char *prefix)
+{
+    if (prefix[strlen(prefix) - 1] == '/')
+        return NULL;
+
+    FilePath *relativeFilePath = initFilePathFromOtherPath(currentPath, prefix);
+    relativeFilePath->pathSize--; // assumes last guy is still incomplete
+
+    int filenamesCount;
+    char **filenames = find_directories_and_files_names(relativeFilePath, &filenamesCount);
+
+    if (filenames == NULL)
+        return NULL;
+
+    for (int i = 0; i < filenamesCount; i++)
+    {
+        if (isPrefix(relativeFilePath->pathTokens[relativeFilePath->pathSize], filenames[i])) {
+            // Find the position of the last `/` in the prefix
+            char *lastSlash = strrchr(prefix, '/');
+            size_t basePathLength = (lastSlash != NULL) ? (lastSlash - prefix + 1) : 0;
+
+            // Allocate memory for the new string
+            size_t newPathLength = basePathLength + strlen(filenames[i]) + 1; // +1 for null terminator
+            char *newPath = (char *)malloc(newPathLength);
+            if (newPath == NULL) {
+                // Handle allocation failure
+                for (int i = 0; i < filenamesCount; i++)
+                    free(filenames[i]);
+                free(filenames);
+                free(relativeFilePath);
+                return NULL;
+            }
+
+            // Construct the new path
+            if (basePathLength > 0)
+                strncpy(newPath, prefix, basePathLength);
+            newPath[basePathLength] = '\0'; // Ensure null termination
+            strcat(newPath, filenames[i]);
+
+            // Free resources
+            for (int i = 0; i < filenamesCount; i++)
+                free(filenames[i]);
+            free(filenames);
+            free(relativeFilePath);
+
+            return newPath;
+        }
+    }
+
+    // Free resources if no match was found
+    for (int i = 0; i < filenamesCount; i++)
+        free(filenames[i]);
+    free(filenames);
+    free(relativeFilePath);
+
+    return NULL;
+}
 
 
 

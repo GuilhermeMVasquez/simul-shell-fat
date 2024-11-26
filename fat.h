@@ -61,4 +61,6 @@ int overwrite_file( FilePath *filepath, const char *filename, const uint8_t *dat
 
 int read_file( FilePath *filepath, const char *filename );
 
+char *getPathAutocomplete(FilePath *currentPath, char *prefix);
+
 #endif // FAT_H

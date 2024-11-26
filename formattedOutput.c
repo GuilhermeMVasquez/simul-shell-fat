@@ -6,6 +6,7 @@
 #include "commands.h"
 #include "systemState.h"
 #include "shellState.h"
+#include "fat.h"
 
 // ##### DEFAULT LINE START #################################################################################
 
@@ -188,9 +189,13 @@ void printLineShell(SystemState* sysState, ShellState* shellState)
         }
 
         char *autocomplete = NULL;
-        
-        autocomplete = getCommandsAutocomplete(token);
-        
+
+        if (currentTokenIndex == 0) {
+            autocomplete = getCommandsAutocomplete(token);
+        } else {
+            autocomplete = getPathAutocomplete(sysState->currentPath, token);
+        }
+
         if (autocomplete != NULL && currentTokenIndex == totalTokens-1) {
             colorHighIntensityWhite();
             printf("%s", token);
