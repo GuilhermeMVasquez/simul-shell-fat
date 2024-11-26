@@ -288,8 +288,6 @@ void executeCommand(Command *command, SystemState *sysState)
             return;
         }
 
-        printf("string: %s, amountOfTimes: %d\n", stringToAppend, repetitions);
-
         FilePath *appendPath;
         appendPath = initFilePathFromOtherPath(sysState->currentPath, tokens.tokens[2]);
         appendPath->pathSize--;
@@ -312,8 +310,6 @@ void executeCommand(Command *command, SystemState *sysState)
             printf("usage: write \"string\"[rep] [/caminho/arquivo]\n");
             return;
         }
-
-        printf("string: %s, amountOfTimes: %d\n", stringToWrite, repetitions);
 
         FilePath *writePath;
         writePath = initFilePathFromOtherPath(sysState->currentPath, tokens.tokens[2]);
