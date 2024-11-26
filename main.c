@@ -190,6 +190,21 @@ void executeCommand(Command *command, SystemState *sysState)
 
         free(readPath);
     }
+    else if (strcmp(tokens.tokens[0], "unlink") == 0)
+    {
+        if (tokens.length == 1) {
+            printf("usage: unlink [path/directory]");
+            return;
+        }
+
+        FilePath *unlinkPath;
+        unlinkPath = initFilePathFromOtherPath(sysState->currentPath, tokens.tokens[1]);
+        unlinkPath->pathSize--;
+
+        unlink_file(unlinkPath, unlinkPath->pathTokens[unlinkPath->pathSize]);
+
+        free(unlinkPath);
+    }
     else if (strcmp(tokens.tokens[0], "append") == 0)
     {
         if (tokens.length <= 2) {
