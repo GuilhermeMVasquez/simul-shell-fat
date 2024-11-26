@@ -10,7 +10,7 @@
 
 // ##### DEFAULT LINE START #################################################################################
 
-void printManLine(char *commandName, char *arg1, char *arg2, char *whatDoes, char *example)
+void printManLine(char *commandName, char *arg1, char *arg2, char *whatDoes, char *example, int type)
 {
     colorBrightCyan();
     printf(" - ");
@@ -18,12 +18,22 @@ void printManLine(char *commandName, char *arg1, char *arg2, char *whatDoes, cha
     printf("%s", commandName);
 
     if (arg1 != NULL) {
-        colorHighIntensityYellow();
+        if (type == 1) {
+            colorHighIntensityMagenta(); 
+        } else {
+            colorHighIntensityYellow();
+        }
+        
         printf(" %s", arg1);
     }
 
     if (arg2 != NULL) {
-        colorHighIntensityMagenta();
+        if (type == 1) {
+            colorHighIntensityYellow();
+        } else {
+            colorHighIntensityMagenta();
+        }
+        
         printf(" %s", arg2);
     }
 
@@ -43,22 +53,22 @@ void printMan()
 {
     colorWhite();
     printf("Default Commands:\n");
-    printManLine("init", NULL, NULL, "Formats the FAT, restarting it to it's default start (empty).", "init");
-    printManLine("load", NULL, NULL, "Uses the FAT that is on Disk.", "load");
-    printManLine("ls", "[/path/directory]", NULL, "List all the directories in the given path.", "ls /users/sergio");
-    printManLine("mkdir", "[/path/directory]", NULL, "Creates an empty directory in the given path.", "mkdir Desktop/PUCRS/5SEM");
-    printManLine("create", "[/path/file]", NULL, "Creates an empty file in the given path.", "create Desktop/PUCRS/5SEM/main.c");
-    printManLine("unlink", "[/path/file]", NULL, "Deletes a file or an empty directory with the given path.", "unlink Desktop/PUCRS/5SEM/main.c");
-    printManLine("write", "\"string\"[rep]", "[/path/file]", "Writes data into a file \e[3mrep\e[0m times. (overwriting data, flushing file initially)", "write \"abc\"[5] Desktop/PUCRS/5SEM/main.c");
-    printManLine("append", "\"string\"[rep]", "[/path/file]", "Appends data into a file \e[3mrep\e[0m times.", "append \"abc\"[5] Desktop/PUCRS/5SEM/main.c");
-    printManLine("read", "[/path/file]", NULL, "Reads the content of a file.", "read Desktop/PUCRS/5SEM/main.c");
+    printManLine("init", NULL, NULL, "Formats the FAT, restarting it to it's default start (empty).", "init", 0);
+    printManLine("load", NULL, NULL, "Uses the FAT that is on Disk.", "load", 0);
+    printManLine("ls", "[/path/directory]", NULL, "List all the directories in the given path.", "ls /users/sergio", 0);
+    printManLine("mkdir", "[/path/directory]", NULL, "Creates an empty directory in the given path.", "mkdir Desktop/PUCRS/5SEM", 0);
+    printManLine("create", "[/path/file]", NULL, "Creates an empty file in the given path.", "create Desktop/PUCRS/5SEM/main.c", 0);
+    printManLine("unlink", "[/path/file]", NULL, "Deletes a file or an empty directory with the given path.", "unlink Desktop/PUCRS/5SEM/main.c", 0);
+    printManLine("write", "\"string\"[rep]", "[/path/file]", "Writes data into a file \e[3mrep\e[0m times. (overwriting data, flushing file initially)", "write \"abc\"[5] Desktop/PUCRS/5SEM/main.c", 1);
+    printManLine("append", "\"string\"[rep]", "[/path/file]", "Appends data into a file \e[3mrep\e[0m times.", "append \"abc\"[5] Desktop/PUCRS/5SEM/main.c", 1);
+    printManLine("read", "[/path/file]", NULL, "Reads the content of a file.", "read Desktop/PUCRS/5SEM/main.c", 0);
 
     colorWhite();
     printf("\nExtra Commands:\n");
-    printManLine("cd", "[/path/directory]", NULL, "Enters the directory in the given path. When inside directories, all paths will be \n   built on top of the path of the directory you are inside. For creating a path from the root,\n   start it with \"/\". If no path is specified to cd, it goes back to the root directory.", "cd Desktop/PUCRS/5SEM");
-    printManLine("clear", NULL, NULL, "Clears the screen.", "clear");
-    printManLine("exit", NULL, NULL, "Exits the program", "exit");
-    printManLine("man", NULL, NULL, "Prints this manual!", "man");
+    printManLine("cd", "[/path/directory]", NULL, "Enters the directory in the given path. When inside directories, all paths will be \n   built on top of the path of the directory you are inside. For creating a path from the root,\n   start it with \"/\". If no path is specified to cd, it goes back to the root directory.", "cd Desktop/PUCRS/5SEM", 0);
+    printManLine("clear", NULL, NULL, "Clears the screen.", "clear", 0);
+    printManLine("exit", NULL, NULL, "Exits the program", "exit", 0);
+    printManLine("man", NULL, NULL, "Prints this manual!", "man", 0);
 }
 
 void printUserAndMachine()
