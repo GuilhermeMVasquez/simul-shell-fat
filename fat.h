@@ -55,6 +55,8 @@ int list_directory( FilePath *filepath );
 
 char check_if_dir_exists( FilePath *filepath );
 
-int append_file( FilePath *filepath, const char *filename, const uint8_t *data, int repetitions );
+int append_file( FilePath *filepath, const char *filename, const uint8_t *data );
+
+int overwrite_file( FilePath *filepath, const char *filename, const uint8_t *data, int repetitions );
 
 #endif // FAT_H

@@ -420,7 +420,7 @@ int find_file_in_directory(uint32_t parent_block, const char *filename, struct d
     return -1;
 }
 
-int append_file( FilePath *filepath, const char *filename, const uint8_t *data, int repetitions ) {
+int append_file( FilePath *filepath, const char *filename, const uint8_t *data ) {
 
     if (data == NULL) {
         printf("Error: Trying to append nothing\n");
@@ -468,9 +468,9 @@ int append_file( FilePath *filepath, const char *filename, const uint8_t *data, 
     uint8_t buffer[ BLOCK_SIZE ];
     read_block( "filesystem.dat", current_block, buffer );
 
-// Calculate the used and free space in the last block
-uint32_t used_space_in_last_block = file_entry.size % BLOCK_SIZE;
-uint32_t free_space_in_last_block = (used_space_in_last_block == 0 && file_entry.size > 0)
+    // Calculate the used and free space in the last block
+    uint32_t used_space_in_last_block = file_entry.size % BLOCK_SIZE;
+    uint32_t free_space_in_last_block = (used_space_in_last_block == 0 && file_entry.size > 0)
                                         ? 0  // Last block is completely full
                                         : BLOCK_SIZE - used_space_in_last_block;
 
@@ -530,7 +530,7 @@ uint32_t free_space_in_last_block = (used_space_in_last_block == 0 && file_entry
     return 0;
 }
 
-int overwrite_file( FilePath *filepath, const char *filename, const uint8_t *data ) {
+int overwrite_file( FilePath *filepath, const char *filename, const uint8_t *data, int repetitions ) {
     if (data == NULL) {
         printf("Error: No data provided for overwriting.\n");
         return -1;

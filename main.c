@@ -267,10 +267,8 @@ void executeCommand(Command *command, SystemState *sysState)
 
         int repetitions;
         char *stringToAppend = parseAppendArgument(tokens.tokens[1], &repetitions);
-        printf("StringToAppend: %s\n", stringToAppend);
 
         if (stringToAppend == NULL) {
-            printf("String nula");
             printf("usage: append \"string\"[rep] [/caminho/arquivo]\n");
             return;
         }
@@ -282,22 +280,34 @@ void executeCommand(Command *command, SystemState *sysState)
         appendPath->pathSize--;
 
         for( int i= 0; i < repetitions; i++ )
-            append_file(appendPath, appendPath->pathTokens[appendPath->pathSize], stringToAppend, repetitions);
+            append_file(appendPath, appendPath->pathTokens[appendPath->pathSize], stringToAppend);
 
         free(appendPath);
+    }
+    else if (strcmp(tokens.tokens[0], "write") == 0)
+    {
+        if (tokens.length <= 2) {
+            printf("usage: write \"string\"[rep] [/caminho/arquivo]\n");
+            return;
+        }
 
+        int repetitions;
+        char *stringToWrite = parseAppendArgument(tokens.tokens[1], &repetitions);
 
-        // FilePath *cdPath;
-        // cdPath = initFilePathFromOtherPath(sysState->currentPath, tokens.tokens[1]);
+        if (stringToWrite == NULL) {
+            printf("usage: write \"string\"[rep] [/caminho/arquivo]\n");
+            return;
+        }
 
-        // if (check_if_dir_exists(cdPath)) {
-        //     free(sysState->currentPath);
-        //     sysState->currentPath = cdPath;
-        // }
-        // else {
-        //     printf("error: %s directory not found!", tokens.tokens[1]);
-        //     free(cdPath);
-        // }
+        printf("string: %s, amountOfTimes: %d\n", stringToWrite, repetitions);
+
+        FilePath *writePath;
+        writePath = initFilePathFromOtherPath(sysState->currentPath, tokens.tokens[2]);
+        writePath->pathSize--;
+
+        overwrite_file(writePath, writePath->pathTokens[writePath->pathSize], stringToWrite, repetitions);
+
+        free(writePath);
     }
     else /* command not found */
     {
