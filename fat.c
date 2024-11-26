@@ -783,21 +783,21 @@ char *getPathAutocomplete(FilePath *currentPath, char *prefix)
 }
 
 int is_directory_empty(uint32_t dir_block) {
-    // Itera pelas entradas do diretório e verifica se há algum arquivo ou subdiretório
+
     for (int i = 0; i < DIR_ENTRIES; i++) {
         struct dir_entry_s entry;
         read_dir_entry(dir_block, i, &entry);
 
-        // Se encontrar qualquer entrada não vazia, o diretório não está vazio
+
         if (entry.attributes != 0x00) {
             return 0;  // Diretório não vazio
         }
     }
 
-    // Se não encontrou nenhuma entrada, o diretório está vazio
-    return 1;  // Diretório vazio
-}
 
+    return 1;  
+}
+ /* when the type information you are searching is not important. JUST ME GIVE THIS!  */
 int find_anything_in_directory(uint32_t parent_block, const char *filename, struct dir_entry_s *file_entry) {
     for (int i = 0; i < DIR_ENTRIES; i++) {
         read_dir_entry(parent_block, i, file_entry);
