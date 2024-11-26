@@ -279,8 +279,7 @@ void executeCommand(Command *command, SystemState *sysState)
         appendPath = initFilePathFromOtherPath(sysState->currentPath, tokens.tokens[2]);
         appendPath->pathSize--;
 
-        for( int i= 0; i < repetitions; i++ )
-            append_file(appendPath, appendPath->pathTokens[appendPath->pathSize], stringToAppend);
+        append_file(appendPath, appendPath->pathTokens[appendPath->pathSize], stringToAppend, repetitions);
 
         free(appendPath);
     }

@@ -420,8 +420,8 @@ int find_file_in_directory(uint32_t parent_block, const char *filename, struct d
     return -1;
 }
 
-int append_file( FilePath *filepath, const char *filename, const uint8_t *data ) {
-
+int append_file( FilePath *filepath, const char *filename, const uint8_t *data, int repetions ) {
+    for( int i=0; i < repetions; i++ ) {
     if (data == NULL) {
         printf("Error: Trying to append nothing\n");
         return -1;
@@ -527,6 +527,7 @@ int append_file( FilePath *filepath, const char *filename, const uint8_t *data )
 
     fclose( fs );
     printf( "Appended %d bytes to the file '%s'.\n", data_offset, filename );
+    }
     return 0;
 }
 
