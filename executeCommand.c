@@ -18,7 +18,11 @@ void clearScreen()
   write(STDOUT_FILENO, CLEAR_SCREEN_ANSI, 12);
 }
 
-// Function to extract the string and repetition count
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
 char *parseAppendArgument(const char *arg, int *repetitions) {
     *repetitions = 1; // Default repetitions
     int len = strlen(arg);
@@ -47,9 +51,14 @@ char *parseAppendArgument(const char *arg, int *repetitions) {
     extractedString[stringLength] = '\0'; // Null-terminate the string
 
     // Check for optional "[rep]" part
-    if (*(closingQuote + 1) == '[' && *(arg + len - 1) == ']') {
+    if (*(closingQuote + 1) == '[') {
         const char *repStart = closingQuote + 2; // Start after '['
-        const char *repEnd = arg + len - 1;      // End before ']'
+        const char *repEnd = strchr(repStart, ']'); // Find the closing ']'
+
+        if (repEnd == NULL) {
+            free(extractedString);
+            return NULL; // Invalid pattern, missing closing ']'
+        }
 
         // Verify all characters in "[rep]" are digits
         for (const char *p = repStart; p < repEnd; ++p) {

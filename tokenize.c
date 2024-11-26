@@ -1,6 +1,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #include "tokenize.h"
 
@@ -21,20 +22,30 @@ char* trim_whitespace(const char* str) {
     return trimmed;
 }
 
-// Function to tokenize a string into a TokenizedResult
 TokenizedResult tokenize_string(const char* str) {
     TokenizedResult result = {NULL, 0};
     if (!str) return result;
-    char *trimmed_str = trim_whitespace(str);
+    char* trimmed_str = trim_whitespace(str);
 
     // Count the number of tokens (words)
     int token_count = 0;
     const char* temp = trimmed_str;
+    bool in_quotes = false;
+
     while (*temp) {
-        while (*temp == ' ') temp++; // Skip spaces
+        while (*temp == ' ' && !in_quotes) temp++; // Skip spaces if not in quotes
         if (*temp) {
             token_count++;
-            while (*temp && *temp != ' ') temp++; // Move to the end of the word
+            if (*temp == '"') {
+                in_quotes = !in_quotes; // Toggle in_quotes
+                temp++;
+                while (*temp && (in_quotes || *temp != ' ')) {
+                    if (*temp == '"') in_quotes = !in_quotes; // Toggle again if another quote is found
+                    temp++;
+                }
+            } else {
+                while (*temp && *temp != ' ') temp++; // Move to the end of the word
+            }
         }
     }
 
@@ -44,11 +55,23 @@ TokenizedResult tokenize_string(const char* str) {
 
     int index = 0;
     temp = trimmed_str; // Reset to the start of the string
+    in_quotes = false;
+
     while (*temp) {
-        while (*temp == ' ') temp++; // Skip spaces
+        while (*temp == ' ' && !in_quotes) temp++; // Skip spaces if not in quotes
         if (*temp) {
             const char* start = temp;
-            while (*temp && *temp != ' ') temp++; // Find the end of the word
+            if (*temp == '"') {
+                in_quotes = !in_quotes; // Toggle in_quotes
+                temp++;
+                while (*temp && (in_quotes || *temp != ' ')) {
+                    if (*temp == '"') in_quotes = !in_quotes; // Toggle again if another quote is found
+                    temp++;
+                }
+                if (!in_quotes) temp++; // Include closing quote
+            } else {
+                while (*temp && *temp != ' ') temp++; // Find the end of the word
+            }
 
             // Allocate and copy the token
             size_t len = temp - start;
