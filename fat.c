@@ -531,6 +531,7 @@ int append_file( FilePath *filepath, const char *filename, const uint8_t *data )
 }
 
 int overwrite_file( FilePath *filepath, const char *filename, const uint8_t *data, int repetitions ) {
+    for( int i = 0; i < repetitions; i++ ) {
     if (data == NULL) {
         printf( "Error: No data provided for overwriting.\n" );
         return -1;
@@ -634,6 +635,7 @@ int overwrite_file( FilePath *filepath, const char *filename, const uint8_t *dat
 
     fclose(fs);
     printf( "File '%s' successfully overwritten with %d bytes, and unused blocks cleared.\n", filename, new_size );
+    }
     return 0;
 }
 
