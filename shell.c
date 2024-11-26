@@ -8,6 +8,8 @@
 #include "commands.h"
 #include "systemState.h"
 #include "shellState.h"
+#include "tokenize.h"
+#include "fat.h"
 
 #define TAB 9
 #define DELETE 127
@@ -36,16 +38,57 @@ void saveCursorPosition()
 
 void tabFunction(SystemState *systemState, ShellState *shellState, int *length)
 {
-    char *autocomplete = getCommandsAutocomplete(shellState->str);
+    TokenizedResult tokens = tokenize_string(shellState->str);
+    
+    char *autocomplete;
+    if (tokens.length <= 1) {
+        autocomplete = getCommandsAutocomplete(shellState->str);
+        
+        if (autocomplete == NULL)
+            return;
 
-    if (autocomplete == NULL)
-        return;
+        free(shellState->str);
+        shellState->str = malloc(strlen(autocomplete) + 1);
+        strcpy(shellState->str, autocomplete);
+        (*length) = strlen(shellState->str);
+        shellState->cursorPosition = (*length);
+    }
+    else {
+        autocomplete = getPathAutocomplete(systemState->currentPath, tokens.tokens[tokens.length - 1]);
 
-    free(shellState->str);
-    shellState->str = malloc(strlen(autocomplete) + 1);
-    strcpy(shellState->str, autocomplete);
-    (*length) = strlen(shellState->str);
-    shellState->cursorPosition = (*length);
+        if (autocomplete == NULL)
+            return;
+
+        // Find the start of the last token in shellState->str
+        int lastTokenBeginning = strlen(shellState->str) - 1;
+        char hasFinishedTrailingWhiteSpaces = 0;
+
+        while (lastTokenBeginning > 0) {
+            if (shellState->str[lastTokenBeginning] == ' ') { // Fix: use single quotes for character
+                if (hasFinishedTrailingWhiteSpaces) {
+                    lastTokenBeginning++;
+                    break;
+                }
+            } else {
+                hasFinishedTrailingWhiteSpaces = 1;
+            }
+            lastTokenBeginning--;
+        }
+
+        // Create the new string: prefix + autocomplete
+        size_t prefixLength = lastTokenBeginning;
+        size_t newLength = prefixLength + strlen(autocomplete) + 1;
+
+        char *newStr = malloc(newLength);
+        strncpy(newStr, shellState->str, prefixLength); // Copy the prefix
+        newStr[prefixLength] = '\0';                   // Null-terminate the prefix
+        strcat(newStr, autocomplete);                  // Append the autocomplete
+
+        free(shellState->str);  // Free the old string
+        shellState->str = newStr;
+        (*length) = strlen(shellState->str);
+        shellState->cursorPosition = (*length);
+    }
 }
 
 Command* shellCycle(SystemState* systemState)
