@@ -839,7 +839,7 @@ int unlink_file(FilePath *filepath, const char *name) {
     }
 
     if( target_entry.attributes == 0x02 ) {
-        if( is_directory_empty( target_entry.first_block ) == 0 ) { printf(" directory is not empty\n ", name); return -1; }
+        if( is_directory_empty( target_entry.first_block ) == 0 ) { printf("Error: \'%s\' directory is not empty\n ", name); return -1; }
 
         else { 
             uint32_t current_block = target_entry.first_block;
